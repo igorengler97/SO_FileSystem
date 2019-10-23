@@ -13,6 +13,8 @@
 #define EXT2_GOOD_OLD_INODE_SIZE         128
 #define EXT2_FEATURE_COMPAT_DIR_PREALLOC 0x0001
 
+#include <stdint.h>
+
 // Você deve encontrar que sizeof(struct superblock) == 1024. (???)
 typedef struct superblock {
     

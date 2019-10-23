@@ -10,6 +10,8 @@
 #define EXT2_S_IFCHR  0x2000
 #define EXT2_S_IFIFO  0x1000
 
+#include <stdint.h>
+
 // Essa estrutura representa um inode. No EXT2, um inode é de 128 bytes.
 
 typedef struct inode {

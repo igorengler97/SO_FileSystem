@@ -8,6 +8,8 @@
 #define EXT2_FT_DIR       2  //  Diretório
 #define EXT2_FT_FIFO      3  //  Arquivo Buffer (valor original 5)
 
+#include <stdint.h>
+
 // Essa estrutura representa uma entrada de diretório. Observe que o campo
 // "nome" é na verdade comprimento variável no disco; para os fins desta
 // estrutura, assumiremos o pior caso de EXT2_NAME_LEN bytes.

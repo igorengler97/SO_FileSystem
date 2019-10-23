@@ -1,7 +1,7 @@
 #ifndef BLOCKGROUP_DESCRIPTOR_TABLE_H
 #define BLOCKGROUP_DESCRIPTOR_TABLE_H
 
-#include "block.h"
+#include <stdint.h>
 
 // Uma block group descriptor table é um vetor de block group
 // descriptors.
