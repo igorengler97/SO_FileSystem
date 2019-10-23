@@ -53,6 +53,6 @@ typedef struct dentry {
     // se o nome do arquivo for realmente um múltiplo perfeito de 4).
     uint8_t file_name[EXT2_NAME_LEN];
 
-} dentry;
+} __attribute__((__packed__)) dentry;
 
 #endif // DIRECTORYENTRY_H

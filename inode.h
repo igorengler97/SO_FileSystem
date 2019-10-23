@@ -45,6 +45,6 @@ typedef struct inode {
     // (ou seja, são entradas "diretas"). 
     uint32_t i_block[12];
     
-} inode;
+} __attribute__((__packed__)) inode;
 
 #endif // INODE_H

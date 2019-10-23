@@ -75,6 +75,6 @@ typedef struct superblock {
     // Não utilizado
     uint8_t s_unused[12];
 
-} superblock;
+} __attribute__((__packed__)) superblock;
 
 #endif // SUPERBLOCK_H
