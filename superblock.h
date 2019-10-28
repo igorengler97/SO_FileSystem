@@ -72,7 +72,7 @@ typedef struct superblock {
 } __attribute__((__packed__)) superblock;
 
 superblock::superblock(){
-    
+
 }
 
 superblock::superblock(int sectors) {
@@ -89,7 +89,9 @@ superblock::superblock(int sectors) {
     this->s_blocks_count = tam_partition / blocksize;
     this->s_free_blocks_count = s_blocks_count;
 
+    uint32_t s_log_block_size = 0;    
     this->s_inode_size = EXT2_INODE_SIZE;
+
 }
 
 #endif // SUPERBLOCK_H
