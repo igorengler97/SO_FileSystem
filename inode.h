@@ -14,6 +14,9 @@
 
 // Essa estrutura representa um inode. No EXT2, um inode é de 128 bytes.
 
+// Procurar um inode é simplesmente uma questão de determinar a qual grupo
+//  de blocos pertence e indexar a tabela de inodes desse grupo de blocos.
+
 typedef struct inode {
     //  Variável de 16 bits usado para indicar o formato do arquivo.
     //

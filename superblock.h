@@ -17,12 +17,12 @@
 
 // Você deve encontrar que sizeof(struct superblock) == 592 bits == 128 bytes
 typedef struct superblock {
-    
-    // Número total de inodes, usados ​​e livres, no sistema.
-    uint32_t s_inodes_count;
 
     // Número total de blocos, usados ​​e livres, no sistema.
     uint32_t s_blocks_count;
+
+    // Número total de inodes, usados ​​e livres, no sistema.
+    uint32_t s_inodes_count;
 
     // Número total de blocos livres.
     uint32_t s_free_blocks_count;
@@ -82,8 +82,19 @@ typedef struct superblock {
 
 superblock::superblock(int sectors) {
     int tam_partition = sectors * 512;          // Em bytes
+
+    s_first_data_block = 0;
+    
+    s_blocks_per_group = 8 * blocksize;
+    s_inodes_per_group = 8 * blocksize;
+
+    s_inodes_count = s_inodes_per_group * (tam_partition / ((blocksize * 8) * blocksize));
+    s_free_inodes_count = s_inodes_count;
+
     s_blocks_count = tam_partiton / blocksize;
     s_free_blocks_count = s_blocks_count;
+
+    s_blockgroup_count = tam_partition / ((blocksize * 8) * blocksize);
 }
 
 #endif // SUPERBLOCK_H

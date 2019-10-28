@@ -11,8 +11,8 @@ typedef struct filesystem {
     superblock* s;
     blockgroup_descriptor* bg_d;
     blockgroup* g;
-
-    filesystem();
+    
+    filesystem(int sectors);
 
     void format(FILE* file, int sectors);
 
@@ -26,10 +26,10 @@ typedef struct filesystem {
 
 } filesystem;
 
-filesystem::filesystem(){
+filesystem::filesystem(int sectors){
     this->s  = new superblock;
     this->bg = new blockgroup_descriptor;
-    this->g  = new blockgroup(s, bg);
+    this->g  = new blockgroup(s, bg_d);
 }
 
 void filesystem::format(FILE* file, int sectors) {
