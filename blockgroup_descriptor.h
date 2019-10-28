@@ -41,6 +41,6 @@ typedef struct blockgroup_descriptor {
     // para diretórios no grupo de blocos que este descritor representa.
     uint16_t bg_used_dirs_count;
 
-} __attribute__((__packed__)) blockgroup_descriptor ;
+} __attribute__((__packed__)) blockgroup_descriptor;
 
 #endif // BLOCKGROUP_DESCRIPTOR_TABLE_H

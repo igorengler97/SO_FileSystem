@@ -19,6 +19,7 @@ typedef struct superblock {
     // Construtor
     superblock();
     superblock(int sectors);
+    void writeFile(FILE* file);
 
     // Número total de blocos, usados ​​e livres, no sistema.
     uint32_t s_blocks_count;
