@@ -1,7 +1,7 @@
 #ifndef SUPERBLOCK_H
 #define SUPERBLOCK_H
 
-// Total 416 bits = 52 bytes
+// Total 464 bits = 58 bytes
 
 // Representação
 // 2^6bits = 64 bytes (0 ~ 63)
@@ -9,12 +9,11 @@
 
 // As constantes a seguir são usadas em alguns dos campos de superbloco.
 // Pesquise-os nos comentários para descobrir o que eles significam.
-#define EXT2_SUPER_MAGIC    0xEF53
+#define EXT2_SUPER_MAGIC    0x0310
 #define EXT2_INODE_SIZE     64
 
 #include <stdint.h>
 
-// Você deve encontrar que sizeof(struct superblock) == 592 bits == 128 bytes
 typedef struct superblock {
 
     // Construtor
@@ -62,12 +61,8 @@ typedef struct superblock {
     // para reconstruir o sistema de arquivos a partir de qualquer backup de superbloco.
     uint16_t s_block_group_nr;
 
-    // Variável de 128 bits usado como o ID de volume exclusivo. todo sistema de arquivos
-    // no mundo deve receber um ID de volume exclusivo, se possível.
-    uint8_t s_uuid[16];
-
     // Não utilizado
-    uint8_t s_unused[66];
+    uint8_t s_unused[22];
 
 } __attribute__((__packed__)) superblock;
 
@@ -86,12 +81,14 @@ superblock::superblock(int sectors) {
     this->s_inodes_count = s_inodes_per_group * (tam_partition / ((blocksize * 8) * blocksize));
     this->s_free_inodes_count = s_inodes_count;
 
-    this->s_blocks_count = tam_partition / blocksize;
+    this->s_blocks_count = ceil(tam_partition / blocksize);
     this->s_free_blocks_count = s_blocks_count;
 
-    uint32_t s_log_block_size = 0;    
+    this->s_log_block_size = 0;    
     this->s_inode_size = EXT2_INODE_SIZE;
 
+    this->s_magic = EXT2_SUPER_MAGIC;
+    this->s_block_group_nr = 0;
 }
 
 #endif // SUPERBLOCK_H
