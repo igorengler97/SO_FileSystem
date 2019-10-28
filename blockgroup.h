@@ -16,9 +16,9 @@ typedef struct blockgroup {
 
 } __attribute__((__packed__)) blockgroup;
 
-blockgroup::blockgroup() {
-    this->s    = new superblock;
-    this->bg_d = new blockgroup_descriptor;
+blockgroup::blockgroup(superblock s, blockgroup_descriptor bg) {
+    this->s    = s;
+    this->bg_d = bg;
     this->i    = new inode;
     this->d    = new dentry;
 }

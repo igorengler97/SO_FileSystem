@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-// Você deve encontrar que sizeof(struct superblock) == 1024. (???)
+// Você deve encontrar que sizeof(struct superblock) == 592 bits == 128 bytes
 typedef struct superblock {
     
     // Número total de inodes, usados ​​e livres, no sistema.
@@ -37,8 +37,8 @@ typedef struct superblock {
     uint32_t s_first_data_block;
 
     // log_2(blocksize/1024).  Portanto, o tamanho do bloco é calculado como:
-    uint32_t s_log_block_size;
-    // uint32_t blocksize = 1024 << s_log_block_size;
+    uint32_t s_log_block_size = 0;
+    uint32_t blocksize = 1024 << s_log_block_size;
 
     // Número de blocos por grupo.  Combinado com s_first_data_block,
     // você pode usar isso para descobrir os limites do grupo de blocos.
@@ -73,8 +73,17 @@ typedef struct superblock {
     uint8_t s_uuid[16];
 
     // Não utilizado
-    uint8_t s_unused[12];
+    uint8_t s_unused[66];
+
+    // Construtor
+    superblock(int sectors);
 
 } __attribute__((__packed__)) superblock;
+
+superblock::superblock(int sectors) {
+    int tam_partition = sectors * 512;          // Em bytes
+    s_blocks_count = tam_partiton / blocksize;
+    s_free_blocks_count = s_blocks_count;
+}
 
 #endif // SUPERBLOCK_H

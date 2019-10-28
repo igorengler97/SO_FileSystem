@@ -8,7 +8,9 @@
 #include "blockgroup.h"
 
 typedef struct filesystem {
-    blockgroup *g;
+    superblock* s;
+    blockgroup_descriptor* bg_d;
+    blockgroup* g;
 
     filesystem();
 
@@ -25,7 +27,9 @@ typedef struct filesystem {
 } filesystem;
 
 filesystem::filesystem(){
-    this->g = new blockgroup;
+    this->s  = new superblock;
+    this->bg = new blockgroup_descriptor;
+    this->g  = new blockgroup(s, bg);
 }
 
 void filesystem::format(FILE* file, int sectors) {

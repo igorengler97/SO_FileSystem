@@ -11,7 +11,7 @@
 typedef struct blockgroup_descriptor {
     
     // ID do bloco (de 32 bits) do primeiro bloco da "lista de 
-    //blocos" para o grupo de blocos que este descritor representa.
+    // blocos" para o grupo de blocos que este descritor representa.
     // uint32_t bg_block_bitmap;
     typedef struct block {
             
