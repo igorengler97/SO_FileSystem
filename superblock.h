@@ -71,9 +71,7 @@ superblock::superblock(){
 
 }
 
-superblock::superblock(int sectors) {
-    int tam_partition = sectors * 512;          // Em bytes
-
+superblock::superblock(int tam_partition) {
     this->s_first_data_block = 0;
     
     this->s_blocks_per_group = 8 * blocksize;

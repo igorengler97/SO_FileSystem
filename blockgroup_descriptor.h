@@ -6,40 +6,25 @@
 // Uma block group descriptor table é um vetor de block group
 // descriptors.
 //
-// Note que sizeof(blockgroup_descriptor) == 14 bytes + struct block.
+// Note que sizeof(blockgroup_descriptor) == 16 bytes
 
 typedef struct blockgroup_descriptor {
     
     // ID do bloco (de 32 bits) do primeiro bloco da "lista de 
     // blocos" para o grupo de blocos que este descritor representa.
-    // uint32_t bg_block_bitmap;
-    typedef struct block {
-            
-        // informação se o bloco está em uso ou  (COLOCAR DENTRO DO BLOCO???)
-        bool isUsed;
-
-        struct block *next;
-    } block;
+    uint32_t bgd_block_list;
 
     // ID do bloco (de 32 bits) do primeiro bloco do "mapa de bits do
     // inode" para o grupo de blocos que este descritor representa.
-    uint32_t bg_inode_bitmap;
+    uint32_t bgd_inode_bitmap;
 
     // ID do bloco (de 32 bits) do primeiro bloco da "tabela de inode" 
     // para o grupo de blocos que este descritor representa.
-    uint32_t bg_inode_table;
+    uint32_t bgd_inode_table;
 
-    // Variável de 16 bits, indicando o número total de blocos livres 
-    // no grupo de blocos que este descritor representa.
-    uint16_t bg_free_blocks_count;
-
-    // Variável de 16 bits indicando o número total de inodes livres 
-    // no grupo de blocos que este descritor representa.
-    uint16_t bg_free_inodes_count;
-
-    // Variável de 16 bits indicando o número de inodes que foram alocados 
-    // para diretórios no grupo de blocos que este descritor representa.
-    uint16_t bg_used_dirs_count;
+    // ID do bloco (de 32 bits) do primeiro bloco do "Bloco de Dados" 
+    // para o grupo de blocos que este descritor representa.
+    uint32_t bgd_data_blocks;
 
 } __attribute__((__packed__)) blockgroup_descriptor;
 

@@ -8,12 +8,14 @@
 #include "blockgroup.h"
 
 typedef struct filesystem {
+    int tam_partition;
+
     superblock* s;
     blockgroup_descriptor* bg_d;
-    blockgroup* bg;
+    //blockgroup* bg[(tam_partition / ((s.blocksize * 8) * blocksize))];
     
     filesystem();
-    filesystem(int sectors);
+    filesystem(int tam_partition);
 
     void format(FILE* file, int sectors);
 
@@ -26,9 +28,10 @@ filesystem::filesystem(){
 }
 
 filesystem::filesystem(int sectors){
-    this->s  = new superblock(sectors);
+    this->tam_partition = sectors * 512;
+    this->s  = new superblock(this->tam_partition);
     this->bg_d = new blockgroup_descriptor;
-    this->bg  = new blockgroup(*s, *bg_d);
+    //this->bg  = new blockgroup(*s, *bg_d);
 }
 
 void filesystem::format(FILE* file, int sectors) {
