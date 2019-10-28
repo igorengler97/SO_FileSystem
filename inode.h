@@ -12,7 +12,8 @@
 
 #include <stdint.h>
 
-// Essa estrutura representa um inode. No EXT2, um inode é de 128 bytes.
+// Essa estrutura representa um inode. No EXT2, um inode é de 128 bytes,
+// mas nesse caso, precisaremos somente de 56.
 
 // Procurar um inode é simplesmente uma questão de determinar a qual grupo
 //  de blocos pertence e indexar a tabela de inodes desse grupo de blocos.
@@ -33,10 +34,6 @@ typedef struct inode {
     // Variável de 32 bits indicando o tamanho do arquivo em bytes
     uint32_t i_size;
 
-    // Variável de 32 bits que representa o tempo UNIX (número de segundos desde a 
-    // época, 1º de janeiro de 1970) da última vez em que este inode foi acessado.
-    uint32_t i_atime;
-
     // Variável de 16 bits que representa o número total de blocos reservados para 
     // conter dados desse inode, independentemente de esses blocos serem usados. 
     // Os números dos blocos estão contidos no vetor i_block.
@@ -47,6 +44,9 @@ typedef struct inode {
     // no vetor contém os números dos blocos de dados
     // (ou seja, são entradas "diretas"). 
     uint32_t i_block[12];
+
+    // Não usado
+    uint8_t i_unused;
     
 } __attribute__((__packed__)) inode;
 

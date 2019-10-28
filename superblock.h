@@ -9,9 +9,8 @@
 
 // As constantes a seguir são usadas em alguns dos campos de superbloco.
 // Pesquise-os nos comentários para descobrir o que eles significam.
-#define EXT2_SUPER_MAGIC                 0xEF53
-#define EXT2_GOOD_OLD_INODE_SIZE         128
-#define EXT2_FEATURE_COMPAT_DIR_PREALLOC 0x0001
+#define EXT2_SUPER_MAGIC    0xEF53
+#define EXT2_INODE_SIZE     64
 
 #include <stdint.h>
 
@@ -56,8 +55,7 @@ typedef struct superblock {
     // esse valor é definido como EXT2_SUPER_MAGIC, que possui o valor 0xEF53
     uint16_t s_magic;
 
-    // Tamanho de um inode. Na revisão 0, isso é
-    // EXT2_GOOD_OLD_INODE_SIZE (128 bytes).
+    // Tamanho de um inode. EXT2_INODE_SIZE (64 bytes).
     uint16_t s_inode_size;
 
     // Número do grupo de blocos que hospeda esse superbloco.  Pode ser usado
@@ -91,6 +89,7 @@ superblock::superblock(int sectors) {
     this->s_blocks_count = tam_partition / blocksize;
     this->s_free_blocks_count = s_blocks_count;
 
+    this->s_inode_size = EXT2_INODE_SIZE;
 }
 
 #endif // SUPERBLOCK_H
