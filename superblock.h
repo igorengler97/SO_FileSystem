@@ -18,6 +18,10 @@
 // Você deve encontrar que sizeof(struct superblock) == 592 bits == 128 bytes
 typedef struct superblock {
 
+    // Construtor
+    superblock();
+    superblock(int sectors);
+
     // Número total de blocos, usados ​​e livres, no sistema.
     uint32_t s_blocks_count;
 
@@ -48,14 +52,6 @@ typedef struct superblock {
     // tamanho do bitmap de inode de cada grupo de blocos.
     uint32_t s_inodes_per_group;
 
-    // Última vez que o sistema de arquivos foi montado, em "horário UNIX" 
-    // (# segundos desde a época).
-    uint32_t s_mtime;
-
-    // Última vez em que o sistema de arquivos foi gravado, em "horário UNIX"
-    // (# segundos desde a época).
-    uint32_t s_wtime;
-
     // "Número mágico" identificando o sistema de arquivos como tipo EXT2.
     // esse valor é definido como EXT2_SUPER_MAGIC, que possui o valor 0xEF53
     uint16_t s_magic;
@@ -75,26 +71,26 @@ typedef struct superblock {
     // Não utilizado
     uint8_t s_unused[66];
 
-    // Construtor
-    superblock(int sectors);
-
 } __attribute__((__packed__)) superblock;
+
+superblock::superblock(){
+    
+}
 
 superblock::superblock(int sectors) {
     int tam_partition = sectors * 512;          // Em bytes
 
-    s_first_data_block = 0;
+    this->s_first_data_block = 0;
     
-    s_blocks_per_group = 8 * blocksize;
-    s_inodes_per_group = 8 * blocksize;
+    this->s_blocks_per_group = 8 * blocksize;
+    this->s_inodes_per_group = 8 * blocksize;
 
-    s_inodes_count = s_inodes_per_group * (tam_partition / ((blocksize * 8) * blocksize));
-    s_free_inodes_count = s_inodes_count;
+    this->s_inodes_count = s_inodes_per_group * (tam_partition / ((blocksize * 8) * blocksize));
+    this->s_free_inodes_count = s_inodes_count;
 
-    s_blocks_count = tam_partiton / blocksize;
-    s_free_blocks_count = s_blocks_count;
+    this->s_blocks_count = tam_partition / blocksize;
+    this->s_free_blocks_count = s_blocks_count;
 
-    s_blockgroup_count = tam_partition / ((blocksize * 8) * blocksize);
 }
 
 #endif // SUPERBLOCK_H

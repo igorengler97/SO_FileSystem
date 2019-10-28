@@ -30,7 +30,7 @@ int main() {
             cout << "Invalid Operation!" << endl;
     }
 
-    std::cout << fs.getBlocksize() << endl;
+    std::cout << fs.getBlockSize() << endl;
 
     return 0;
 }

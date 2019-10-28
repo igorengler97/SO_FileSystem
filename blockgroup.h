@@ -7,18 +7,18 @@
 #include "directoryentry.h"
 
 typedef struct blockgroup {
-    superblock* s;
-    blockgroup_descriptor* bg_d;
+    superblock s;
+    blockgroup_descriptor bg_d;
     inode* i;
     dentry* d;
 
-    blockgroup();
+    blockgroup(superblock, blockgroup_descriptor);
 
 } __attribute__((__packed__)) blockgroup;
 
-blockgroup::blockgroup(superblock s, blockgroup_descriptor bg) {
+blockgroup::blockgroup(superblock s, blockgroup_descriptor bg_d) {
     this->s    = s;
-    this->bg_d = bg;
+    this->bg_d = bg_d;
     this->i    = new inode;
     this->d    = new dentry;
 }
