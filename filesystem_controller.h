@@ -1,19 +1,18 @@
+#ifndef FILESYSTEM_H
+#define FILESYSTEM_H
+
 #include <iostream>
 #include <stdlib.h>
 #include <math.h>
 
-#include "superblock.h"
-#include "blockgroup_descriptor.h"
-#include "inode.h"
-#include "directoryentry.h"
+#include "blockgroup.h"
 
 typedef struct filesystem {
-    superblock* s;
-    blockgroup_descriptor* bg_d;
-    inode* i;
-    dentry* d;
+    blockgroup *g;
 
     filesystem();
+
+    void format(FILE* file, int sectors);
 
     superblock getSuperblock() {
         //return s;
@@ -26,8 +25,14 @@ typedef struct filesystem {
 } filesystem;
 
 filesystem::filesystem(){
-    this->s = new superblock;
-    this->bg_d = new blockgroup_descriptor;
-    this->i = new inode;
-    this->d = new dentry;
+    this->g = new blockgroup;
 }
+
+void filesystem::format(FILE* file, int sectors) {
+    superblock s_format;
+    s_format.s_blocks_count = sectors;
+
+    std::cout << "How many sectors? " << s_format.s_blocks_count << std::endl;
+}
+
+#endif // FILESYSTEM_H
