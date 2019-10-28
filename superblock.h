@@ -38,7 +38,7 @@ typedef struct superblock {
 
     // log_2(blocksize/1024).  Portanto, o tamanho do bloco é calculado como:
     uint32_t s_log_block_size;
-    uint32_t blocksize = 1024 << s_log_block_size;
+    // uint32_t blocksize = 1024 << s_log_block_size;
 
     // Número de blocos por grupo.  Combinado com s_first_data_block,
     // você pode usar isso para descobrir os limites do grupo de blocos.
