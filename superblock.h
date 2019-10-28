@@ -5,7 +5,7 @@
 
 // Representação
 // 2^6bits = 64 bytes (0 ~ 63)
-//   SOBRA 12 BYTES
+//   SOBRA 22 BYTES
 
 // As constantes a seguir são usadas em alguns dos campos de superbloco.
 // Pesquise-os nos comentários para descobrir o que eles significam.
@@ -89,6 +89,10 @@ superblock::superblock(int sectors) {
 
     this->s_magic = EXT2_SUPER_MAGIC;
     this->s_block_group_nr = 0;
+}
+
+void superblock::writeFile (FILE* file) {
+    fwrite(this, sizeof(superblock), 1, file);
 }
 
 #endif // SUPERBLOCK_H
