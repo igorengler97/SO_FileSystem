@@ -1,18 +1,25 @@
 #ifndef DIRECTORYENTRY_H
 #define DIRECTORYENTRY_H
 
+// Um diretório é um arquivo que contém uma lista de entradas. Cada entrada 
+// contém um número de inode e um nome de arquivo. Quando um processo usa um
+// nome de caminho, o código do kernel procura nos diretórios para encontrar 
+// o número do inode correspondente. Após o nome ter sido convertido em um 
+// número de inode, o inode é carregado na memória e usado por solicitações
+// subsequentes.
+
 // Constantes usadas em alguns dos campos de entrada do diretório.
-#define EXT2_NAME_LEN     255
-#define EXT2_FT_UNKNOWN   0  //  Tipo de Arquivo Desconhecido
-#define EXT2_FT_REG_FILE  1  //  Arquivo
-#define EXT2_FT_DIR       2  //  Diretório
-#define EXT2_FT_FIFO      3  //  Arquivo Buffer (valor original 5)
+#define NAME_LEN     255
+#define UNKNOWN      0      //  Tipo de Arquivo Desconhecido
+#define FT_REG_FILE  1      //  Arquivo
+#define FT_DIR       2      //  Diretório
+#define FT_FIFO      3      //  Arquivo Buffer
 
 #include <stdint.h>
 
 // Essa estrutura representa uma entrada de diretório. Observe que o campo
 // "nome" é na verdade comprimento variável no disco; para os fins desta
-// estrutura, assumiremos o pior caso de EXT2_NAME_LEN bytes.
+// estrutura, assumiremos o pior caso de NAME_LEN bytes.
 
 typedef struct dentry {
     // O número de inode de 32 bits do arquivo referido por esta entrada 
@@ -38,11 +45,7 @@ typedef struct dentry {
     // EXT2_FT_UNKNOWN   0  Unknown File Type
     // EXT2_FT_REG_FILE  1  Regular File
     // EXT2_FT_DIR       2  Directory File
-    // EXT2_FT_CHRDEV    3  Character Device
-    // EXT2_FT_BLKDEV    4  Block Device
-    // EXT2_FT_FIFO      5  Buffer File
-    // EXT2_FT_SOCK      6  Socket File
-    // EXT2_FT_SYMLINK   7  Symbolic Link
+    // EXT2_FT_FIFO      3  Buffer File
     uint8_t file_type;
 
     // O próprio nome do arquivo. Os nomes dos arquivos serão preenchidos
@@ -51,7 +54,7 @@ typedef struct dentry {
     // caracteres "name_len" fazem parte do nome do arquivo e você não pode
     // confiar na existência de um caractere NULL na entrada (por exemplo, 
     // se o nome do arquivo for realmente um múltiplo perfeito de 4).
-    uint8_t file_name[EXT2_NAME_LEN];
+    uint8_t file_name[NAME_LEN];
 
 } __attribute__((__packed__)) dentry;
 

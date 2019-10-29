@@ -12,11 +12,11 @@ typedef struct blockgroup_descriptor {
     
     // ID do bloco (de 32 bits) do primeiro bloco da "lista de 
     // blocos" para o grupo de blocos que este descritor representa.
-    uint32_t bgd_block_list;
+    uint32_t bgd_addr_first_free_block;
 
     // ID do bloco (de 32 bits) do primeiro bloco do "mapa de bits do
     // inode" para o grupo de blocos que este descritor representa.
-    uint32_t bgd_inode_bitmap;
+    uint32_t bgd_inode_bitmap;          // Endereçamento Máximo: 8 * (blocksize * num_blocks)
 
     // ID do bloco (de 32 bits) do primeiro bloco da "tabela de inode" 
     // para o grupo de blocos que este descritor representa.

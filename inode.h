@@ -34,16 +34,23 @@ typedef struct inode {
     // Variável de 32 bits indicando o tamanho do arquivo em bytes
     uint32_t i_size;
 
-    // Variável de 16 bits que representa o número total de blocos reservados para 
-    // conter dados desse inode, independentemente de esses blocos serem usados. 
+    // Variável de 16 bits que representa o número total de blocos 
+    // reservados para conter dados desse inode, independentemente 
+    // de esses blocos serem usados. 
     // Os números dos blocos estão contidos no vetor i_block.
     uint16_t i_blocks;
 
-    // Vetor de 15 números de bloco (de 32 bits) apontando 
-    // para os blocos contendo dados.  As primeiras 12 entradas 
-    // no vetor contém os números dos blocos de dados
-    // (ou seja, são entradas "diretas"). 
-    uint32_t i_block[12];
+    // Vetor de 15 números de bloco (de 32 bits) apontando para os 
+    // blocos contendo dados.  As primeiras 12 entradas no vetor 
+    // contém os números dos blocos de dados(ou seja, são entradas 
+    // "diretas"). A 13ª entrada (i_block [12]) contém o número do 
+    // bloco do primeiro bloco indireto, que contém ele próprio 
+    // (tamanho do bloco / 4) o número de blocos dos blocos de dados.
+    // A 14ª entrada (bloco i [13]) contém o número do primeiro bloco 
+    // duplamente indireto. A 15ª entrada (bloco [14]) é o número do 
+    // bloco do primeiro bloco triplamente indireto.
+    // 20 Diretos e 3 Indiretos
+    uint32_t i_block[22];                       // Vetor de Índices
 
     // Não usado
     uint8_t i_unused;

@@ -5,7 +5,10 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "blockgroup.h"
+#include "superblock.h"
+#include "blockgroup_descriptor.h"
+#include "inode.h"
+#include "directoryentry.h"
 
 typedef struct filesystem {
     int tam_partition;
