@@ -20,7 +20,7 @@ typedef struct superblock {
 
     // Construtor
     superblock();
-    superblock(int sectors);
+    superblock(int partition_size);
 
     // Funcoes
     void writeFile(FILE* file);
@@ -62,11 +62,11 @@ superblock::superblock(){
 
 }
 
-superblock::superblock(int tam_partition) {
+superblock::superblock(int partition_size) {
     
     this->s_magic = OWNFS_SUPER_MAGIC;
-    this->s_blocks_count = ceil(tam_partition / OWNFS_BLOCK_SIZE);
-    this->s_inodes_count = ceil(tam_partition / OWNFS_BLOCK_SIZE);
+    this->s_blocks_count = ceil(partition_size / OWNFS_BLOCK_SIZE);
+    this->s_inodes_count = ceil(partition_size / OWNFS_BLOCK_SIZE);
     this->s_free_blocks_count = s_blocks_count;
     this->s_free_inodes_count = s_inodes_count;
     this->s_first_data_block = 0;
