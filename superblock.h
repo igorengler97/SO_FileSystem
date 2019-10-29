@@ -10,8 +10,9 @@
 // As constantes a seguir são usadas em alguns dos campos de superbloco.
 // Pesquise-os nos comentários para descobrir o que eles significam.
 
-#define EXT2_SUPER_MAGIC    0x0310
-#define EXT2_INODE_SIZE     64
+#define OWNFS_SUPER_MAGIC    0x0310
+#define OWNFS_BLOCK_SIZE     1024
+#define OWNFS_INODE_SIZE     64
 
 #include <stdint.h>
 
@@ -20,7 +21,13 @@ typedef struct superblock {
     // Construtor
     superblock();
     superblock(int sectors);
+
+    // Funcoes
     void writeFile(FILE* file);
+
+    // "Número mágico" identificando o sistema de arquivos como tipo EXT2.
+    // esse valor é definido como EXT2_SUPER_MAGIC, que possui o valor 0xEF53
+    uint16_t s_magic;
 
     // Número total de blocos, usados ​​e livres, no sistema.
     uint32_t s_blocks_count;
@@ -41,18 +48,13 @@ typedef struct superblock {
     uint32_t s_first_data_block;
 
     // log_2(blocksize/1024).  Portanto, o tamanho do bloco é calculado como:
-    uint32_t s_log_block_size = 0;
-    uint32_t blocksize = 1024 << s_log_block_size;
-
-    // "Número mágico" identificando o sistema de arquivos como tipo EXT2.
-    // esse valor é definido como EXT2_SUPER_MAGIC, que possui o valor 0xEF53
-    uint16_t s_magic;
+    uint32_t s_block_size;
 
     // Tamanho de um inode. EXT2_INODE_SIZE (64 bytes).
     uint16_t s_inode_size;
 
     // Não utilizado
-    uint8_t s_unused[32];
+    uint8_t s_unused[4];
 
 } __attribute__((__packed__)) superblock;
 
@@ -61,18 +63,15 @@ superblock::superblock(){
 }
 
 superblock::superblock(int tam_partition) {
-    this->s_first_data_block = 0;
-
-    //this->s_inodes_count = ;
-    //this->s_free_inodes_count = s_inodes_count;
-
-    this->s_blocks_count = ceil(tam_partition / blocksize);
+    
+    this->s_magic = OWNFS_SUPER_MAGIC;
+    this->s_blocks_count = ceil(tam_partition / OWNFS_BLOCK_SIZE);
+    this->s_inodes_count = ceil(tam_partition / OWNFS_BLOCK_SIZE);
     this->s_free_blocks_count = s_blocks_count;
-
-    this->s_log_block_size = 0;    
-    this->s_inode_size = EXT2_INODE_SIZE;
-
-    this->s_magic = EXT2_SUPER_MAGIC;
+    this->s_free_inodes_count = s_inodes_count;
+    this->s_first_data_block = 0;
+    this->s_block_size = 0;    
+    this->s_inode_size = OWNFS_INODE_SIZE;
 }
 
 void superblock::writeFile (FILE* file) {
