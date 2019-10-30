@@ -1,21 +1,13 @@
 #ifndef SUPERBLOCK_H
 #define SUPERBLOCK_H
 
-// Total 432 bits = 54 bytes
-//
-// Representação
-// 2^6bits = 64 bytes (0 ~ 63)
-//   SOBRA 32 BYTES
-//
-// As constantes a seguir são usadas em alguns dos campos de superbloco.
-// Pesquise-os nos comentários para descobrir o que eles significam.
-
 #define OWNFS_SUPER_MAGIC    0x0310
 #define OWNFS_BLOCK_SIZE     1024
 #define OWNFS_INODE_SIZE     64
 
 #include <stdint.h>
 
+// Sizeof(superblock) == 32 bytes
 typedef struct superblock {
 
     // Construtor
@@ -23,13 +15,12 @@ typedef struct superblock {
     superblock(int partition_size);
 
     // Funcoes
-    void writeFile(FILE* file);
+    void writeFile(FILE* device);
     void printSuperblock();
-    uint32_t getBlockSize();
 
 
     // "Número mágico" identificando o sistema de arquivos como tipo EXT2.
-    // esse valor é definido como EXT2_SUPER_MAGIC, que possui o valor 0xEF53
+    // esse valor é definido como OWNFS_SUPER_MAGIC, que possui o valor 0x0310
     uint16_t s_magic;
 
     // Número total de blocos, usados ​​e livres, no sistema.
@@ -53,7 +44,7 @@ typedef struct superblock {
     // log_2(blocksize/1024).  Portanto, o tamanho do bloco é calculado como:
     uint32_t s_block_size;
 
-    // Tamanho de um inode. EXT2_INODE_SIZE (64 bytes).
+    // Tamanho de um inode. OWN_INODE_SIZE (64 bytes).
     uint16_t s_inode_size;
 
     // Não utilizado
@@ -70,6 +61,7 @@ superblock::superblock(){
     this->s_first_data_block = 0;
     this->s_block_size = OWNFS_BLOCK_SIZE;    
     this->s_inode_size = OWNFS_INODE_SIZE;
+    std::fill_n(this->s_unused, 4, NULL);
 }
 
 superblock::superblock(int partition_size) {
@@ -82,10 +74,11 @@ superblock::superblock(int partition_size) {
     this->s_first_data_block = 0;
     this->s_block_size = OWNFS_BLOCK_SIZE;    
     this->s_inode_size = OWNFS_INODE_SIZE;
+    std::fill_n(this->s_unused, 4, NULL);
 }
 
-void superblock::writeFile (FILE* file) {
-    fwrite(this, sizeof(superblock), 1, file);
+void superblock::writeFile (FILE* device) {
+    fwrite(this, sizeof(superblock), 1, device);
 }
 
 void superblock::printSuperblock (){
@@ -97,10 +90,6 @@ void superblock::printSuperblock (){
     std::cout << this->s_first_data_block << std::endl;
     std::cout << this->s_block_size << std::endl;
     std::cout << this->s_inode_size << std::endl;
-}
-
-uint32_t superblock::getBlockSize(){
-    return this->s_block_size;
 }
 
 #endif // SUPERBLOCK_H

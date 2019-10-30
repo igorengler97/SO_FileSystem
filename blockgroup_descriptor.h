@@ -10,9 +10,11 @@
 
 typedef struct blockgroup_descriptor {
     
-    // ID do bloco (de 32 bits) do primeiro bloco da "lista de 
-    // blocos" para o grupo de blocos que este descritor representa.
-    uint32_t bgd_addr_first_free_block;
+    // Constructor
+    blockgroup_descriptor(unsigned int superblock_size);
+
+    // Functions
+    void writeFile(FILE *device);
 
     // ID do bloco (de 32 bits) do primeiro bloco do "mapa de bits do
     // inode" para o grupo de blocos que este descritor representa.
@@ -26,6 +28,21 @@ typedef struct blockgroup_descriptor {
     // para o grupo de blocos que este descritor representa.
     uint32_t bgd_data_blocks;
 
+    // ID do bloco (de 32 bits) do primeiro bloco da "lista de 
+    // blocos" para o grupo de blocos que este descritor representa.
+    uint32_t bgd_addr_first_free_block;
+
 } __attribute__((__packed__)) blockgroup_descriptor;
+
+blockgroup_descriptor::blockgroup_descriptor(unsigned int superblock_size){
+    this->bgd_inode_bitmap = superblock_size + sizeof(blockgroup_descriptor);
+    this->bgd_inode_table = superblock_size + sizeof(blockgroup_descriptor) + (32*1024);
+    this->bgd_data_blocks = superblock_size + sizeof(blockgroup_descriptor) + (32*1024) + (262144 * 64);
+    this->bgd_addr_first_free_block = this->bgd_data_blocks;
+}
+
+void blockgroup_descriptor::writeFile (FILE* device) {
+    fwrite(this, sizeof(blockgroup_descriptor), 1, device);
+}
 
 #endif // BLOCKGROUP_DESCRIPTOR_TABLE_H

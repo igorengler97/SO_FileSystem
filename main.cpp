@@ -8,29 +8,39 @@
 #include <iostream>
 #include "filesystem_controller.h"
 
-using namespace std;
-
 int main() {
-    filesystem fs;
-    FILE* file;
+    filesystem *fs;
+    FILE* device;
+
+    const char *name_device = "device1.own";
 
     int op, sectors;
 
-    cout << "Operation: ";
-    cin >> op;
+    std::cout << "Operation: ";
+    std::cin >> op;
+
+    fs = new filesystem(sectors);
 
     switch(op) {
         case 1:
-            cout << "Number of Sectors: ";
-            cin >> sectors;
-            fs.format(file, sectors);
+            device = fopen(name_device, "w+");
+            if(device == NULL){
+                std::cout << "ERROR: Not Open" << std::endl;
+                return -1;
+            }
+            
+            std::cout << "Number of Sectors: ";
+            std::cin >> sectors;
+            
+            fs->format(device, sectors);
+            fclose(device);
             break;
         
         default:
-            cout << "Invalid Operation!" << endl;
+            std::cout << "Invalid Operation!" << std::endl;
     }
 
-    std::cout << fs.getBlockSize() << endl;
+    std::cout << fs->getBlockSize() << std::endl;
 
     return 0;
 }
