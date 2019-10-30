@@ -11,17 +11,15 @@
 #include "directoryentry.h"
 
 typedef struct filesystem {
-    int tam_partition;
-
-    superblock* s;
+    
+    superblock* sb;
     blockgroup_descriptor* bg_d;
-    //blockgroup* bg[(tam_partition / ((s.blocksize * 8) * blocksize))];
+
+    unsigned int partition_size;
     
     filesystem();
-    filesystem(int tam_partition);
-
+    filesystem(int sectors);
     void format(FILE* file, int sectors);
-
     uint32_t getBlockSize();
 
 } filesystem;
@@ -31,21 +29,26 @@ filesystem::filesystem(){
 }
 
 filesystem::filesystem(int sectors){
-    this->tam_partition = sectors * 512;
-    this->s  = new superblock(this->tam_partition);
-    this->bg_d = new blockgroup_descriptor;
-    //this->bg  = new blockgroup(*s, *bg_d);
+    this->partition_size = sectors * 512;
+    this->sb  = new superblock(this->partition_size);
+    //this->bg_d = new blockgroup_descriptor;
 }
 
 void filesystem::format(FILE* file, int sectors) {
-    superblock s_format;
-    s_format.s_blocks_count = sectors;
+    superblock sb_format;
+    sb_format.s_blocks_count = sectors*512;
+    sb_format.s_inodes_count = sectors*512;
+    sb_format.s_free_blocks_count = sb_format.s_blocks_count;
+    sb_format.s_free_inodes_count = sb_format.s_inodes_count;
 
-    std::cout << "How many sectors? " << s_format.s_blocks_count << std::endl;
+    sb_format.printSuperblock();
+    
+    
+   
 }
 
 uint32_t filesystem::getBlockSize(){
-    return s->blocksize;
+    return sb->getBlockSize();
 }
 
 #endif // FILESYSTEM_H

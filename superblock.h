@@ -24,6 +24,9 @@ typedef struct superblock {
 
     // Funcoes
     void writeFile(FILE* file);
+    void printSuperblock();
+    uint32_t getBlockSize();
+
 
     // "Número mágico" identificando o sistema de arquivos como tipo EXT2.
     // esse valor é definido como EXT2_SUPER_MAGIC, que possui o valor 0xEF53
@@ -59,7 +62,14 @@ typedef struct superblock {
 } __attribute__((__packed__)) superblock;
 
 superblock::superblock(){
-
+    this->s_magic = OWNFS_SUPER_MAGIC;
+    this->s_blocks_count = 0;
+    this->s_inodes_count = 0;
+    this->s_free_blocks_count = s_blocks_count;
+    this->s_free_inodes_count = s_inodes_count;
+    this->s_first_data_block = 0;
+    this->s_block_size = OWNFS_BLOCK_SIZE;    
+    this->s_inode_size = OWNFS_INODE_SIZE;
 }
 
 superblock::superblock(int partition_size) {
@@ -70,12 +80,27 @@ superblock::superblock(int partition_size) {
     this->s_free_blocks_count = s_blocks_count;
     this->s_free_inodes_count = s_inodes_count;
     this->s_first_data_block = 0;
-    this->s_block_size = 0;    
+    this->s_block_size = OWNFS_BLOCK_SIZE;    
     this->s_inode_size = OWNFS_INODE_SIZE;
 }
 
 void superblock::writeFile (FILE* file) {
     fwrite(this, sizeof(superblock), 1, file);
+}
+
+void superblock::printSuperblock (){
+    std::cout << std::hex << this->s_magic << std::dec << std::endl;
+    std::cout << this->s_blocks_count << std::endl;
+    std::cout << this->s_inodes_count << std::endl;
+    std::cout << this->s_free_blocks_count << std::endl;
+    std::cout << this->s_free_inodes_count << std::endl;
+    std::cout << this->s_first_data_block << std::endl;
+    std::cout << this->s_block_size << std::endl;
+    std::cout << this->s_inode_size << std::endl;
+}
+
+uint32_t superblock::getBlockSize(){
+    return this->s_block_size;
 }
 
 #endif // SUPERBLOCK_H
