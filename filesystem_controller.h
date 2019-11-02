@@ -46,8 +46,8 @@ void filesystem::format(FILE* device, int sectors) {
     inode_bitmap ib_format;
     inode i_format;
 
-    sb_format.s_blocks_count = ceil((sectors*512)/sb_format.s_block_size);
-    sb_format.s_inodes_count = ceil((sectors*512)/sb_format.s_block_size);
+    sb_format.s_blocks_count = ceil((double)((sectors*512)/sb_format.s_block_size));
+    sb_format.s_inodes_count = ceil((double)((sectors*512)/sb_format.s_block_size)/10);
     sb_format.s_free_blocks_count = sb_format.s_blocks_count;
     sb_format.s_free_inodes_count = sb_format.s_inodes_count;
 
@@ -62,14 +62,16 @@ void filesystem::format(FILE* device, int sectors) {
         i_format.writeFile(device);
     }
 
+    std::cout<<bg_d_format.bgd_addr_first_free_block << std::endl;
+
     // Insere na lista os blocos livres
-    for(int i = 0; i < 10; i++) {
+    /*for(int i = 0; i < 10; i++) {
         if(i == 0) {
             free_blocks_list->data = bg_d_format.bgd_addr_first_free_block;
         } else {
             free_blocks_list.push_back(bg_d_format.bgd_addr_first_free_block + (i * 1024));
         }
-    }
+    }*/
 
     /*
         Exemplo:
@@ -85,9 +87,9 @@ void filesystem::format(FILE* device, int sectors) {
     */
 
     // Grava na imagem os blocos
-    for(int i = 0; i < 10; i++) {
+    /*for(int i = 0; i < 10; i++) {
         fwrite(free_blocks_list, sizeof(free_blocks_list), 1, device);
-    }
+    }*/
 }
 
 uint32_t filesystem::getBlockSize(){

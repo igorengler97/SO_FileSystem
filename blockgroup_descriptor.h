@@ -36,8 +36,8 @@ typedef struct blockgroup_descriptor {
 
 blockgroup_descriptor::blockgroup_descriptor(unsigned int superblock_size){
     this->bgd_inode_bitmap = superblock_size + sizeof(blockgroup_descriptor);
-    this->bgd_inode_table = superblock_size + sizeof(blockgroup_descriptor) + (32*1024);
-    this->bgd_data_blocks = superblock_size + sizeof(blockgroup_descriptor) + (32*1024) + (262144 * 64);
+    this->bgd_inode_table = superblock_size + sizeof(blockgroup_descriptor) + (4*1024);
+    this->bgd_data_blocks = superblock_size + sizeof(blockgroup_descriptor) + (4*1024) + (26215 * 64);
     this->bgd_addr_first_free_block = this->bgd_data_blocks;
 }
 

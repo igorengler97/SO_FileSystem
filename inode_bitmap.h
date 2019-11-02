@@ -11,12 +11,12 @@ typedef struct inode_bitmap {
     // Functions
     void writeFile(FILE *device);
 
-    uint8_t ib_bitmap[32*1024];
+    uint8_t ib_bitmap[4*1024];
 
 } __attribute__((__packed__)) inode_bitmap;
 
 inode_bitmap::inode_bitmap(){
-    std::fill_n(this->ib_bitmap, (32*1024), NULL);
+    std::fill_n(this->ib_bitmap, (4*1024), NULL);
 }
 
 void inode_bitmap::writeFile (FILE* device) {
