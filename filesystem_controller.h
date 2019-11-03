@@ -2,9 +2,8 @@
 #define FILESYSTEM_H
 
 #include <iostream>
-#include <list>
-#include <cstddef>
-#include <iterator>
+#include <vector>
+#include <algorithm>
 #include <stdlib.h>
 #include <math.h>
 
@@ -13,13 +12,12 @@
 #include "inode_bitmap.h"
 #include "inode.h"
 #include "directoryentry.h"
-#include "block.h"
 
 typedef struct filesystem {
     
     superblock* sb;
     blockgroup_descriptor* bg_d;
-    block *free_blocks_list;
+    std::vector<uint32_t> free_blocks_list;
 
     unsigned int partition_size;
     
@@ -45,6 +43,7 @@ void filesystem::format(FILE* device, int sectors) {
     blockgroup_descriptor bg_d_format(sizeof(sb_format));
     inode_bitmap ib_format;
     inode i_format;
+    dentry de_format[2];
 
     sb_format.s_blocks_count = ceil((double)((sectors*512)/sb_format.s_block_size));
     sb_format.s_inodes_count = ceil((double)((sectors*512)/sb_format.s_block_size)/10);
@@ -65,31 +64,55 @@ void filesystem::format(FILE* device, int sectors) {
     std::cout<<bg_d_format.bgd_addr_first_free_block << std::endl;
 
     // Insere na lista os blocos livres
-    /*for(int i = 0; i < 10; i++) {
+    // 266753552
+    for(int i = 0; i < (((sectors*512)-bg_d_format.bgd_data_blocks)/sb_format.s_block_size); i++) {
         if(i == 0) {
-            free_blocks_list->data = bg_d_format.bgd_addr_first_free_block;
+            free_blocks_list.push_back(bg_d_format.bgd_addr_first_free_block);
         } else {
             free_blocks_list.push_back(bg_d_format.bgd_addr_first_free_block + (i * 1024));
         }
-    }*/
+        std::cout << free_blocks_list.at(i) << std::endl;
+    }
 
-    /*
-        Exemplo:
-            // Be sure to have opened the file in binary mode
-            Car *x = head;
+    uint32_t *x = free_blocks_list.data();
+    
+    for(int i = 0; i < free_blocks_list.size(); i++){
+        fseek(device, free_blocks_list.at(i), SEEK_SET);
+        fwrite(x+(i+1), sizeof(uint32_t), 1, device);
+        if(i == (free_blocks_list.size() - 1)){
+            fseek(device, free_blocks_list.at(i)+1020, SEEK_SET);
+            fwrite(x+(i+1), sizeof(uint32_t), 1, device);
+        }
+    }
 
-            // Walk the list and write each node.
-            // No need to write the next field - which happens to be the last one.
-            //                    v-----------------v size of data before the `next` field
-            while (x && fwrite(x, offsetof(Car, next), 1, out_stream) == 1) {
-                x = x->next;
-            }
-    */
+    i_format.i_type = 0x4000;
+    i_format.i_block[0] = bg_d_format.bgd_data_blocks;
+    i_format.i_size = 0;
+    std::fseek(device, bg_d_format.bgd_inode_table, SEEK_SET);
+    std::fwrite(&i_format, sizeof(inode), 1, device);
 
-    // Grava na imagem os blocos
-    /*for(int i = 0; i < 10; i++) {
-        fwrite(free_blocks_list, sizeof(free_blocks_list), 1, device);
-    }*/
+    de_format[0].inode = 0;
+    de_format[0].setName(".");
+    de_format[0].name_len = sizeof(de_format[0].file_name);
+    de_format[0].file_type = 2;
+    de_format[0].entry_len = sizeof(de_format[0]);
+
+    de_format[1].inode = 0;
+    de_format[1].setName("..");
+    de_format[1].name_len = sizeof(de_format[1].file_name);
+    de_format[1].file_type = 2;
+    de_format[1].entry_len = sizeof(de_format[1]);
+
+    std::fseek(device, bg_d_format.bgd_data_blocks, SEEK_SET);
+    std::fwrite(de_format, sizeof(dentry), 2, device);
+
+    uint8_t byte = 1 >> 7;
+    
+    std:fseek(device, bg_d_format.bgd_inode_bitmap, SEEK_SET);
+    std::fwrite(&byte, sizeof(uint8_t), 1, device);
+
+    //Tira da lista o Bloco utilizado, altera na imagem a lista de blocos livres
+
 }
 
 uint32_t filesystem::getBlockSize(){
