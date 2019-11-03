@@ -9,7 +9,7 @@
 // subsequentes.
 
 // Constantes usadas em alguns dos campos de entrada do diretório.
-#define NAME_LEN     255
+#define NAME_LEN     12
 #define UNKNOWN      0      //  Tipo de Arquivo Desconhecido
 #define FT_REG_FILE  1      //  Arquivo
 #define FT_DIR       2      //  Diretório
