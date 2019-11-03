@@ -23,8 +23,11 @@ typedef struct filesystem {
     
     filesystem();
     filesystem(int sectors);
-    void format(FILE* file, int sectors);
+    void format(FILE* device, int sectors);
+    void copyArchiveHDtoFS(FILE* file);
     uint32_t getBlockSize();
+    
+    void updateFreeBlockList(FILE* device, uint32_t *x);
 
 } filesystem;
 
@@ -77,11 +80,11 @@ void filesystem::format(FILE* device, int sectors) {
     uint32_t *x = free_blocks_list.data();
     
     for(int i = 0; i < free_blocks_list.size(); i++){
-        fseek(device, free_blocks_list.at(i), SEEK_SET);
-        fwrite(x+(i+1), sizeof(uint32_t), 1, device);
+        std::fseek(device, free_blocks_list.at(i), SEEK_SET);
+        std::fwrite(x+(i+1), sizeof(uint32_t), 1, device);
         if(i == (free_blocks_list.size() - 1)){
-            fseek(device, free_blocks_list.at(i)+1020, SEEK_SET);
-            fwrite(x+(i+1), sizeof(uint32_t), 1, device);
+            std::fseek(device, free_blocks_list.at(i)+1020, SEEK_SET);
+            std::fwrite(x+(i+1), sizeof(uint32_t), 1, device);
         }
     }
 
@@ -106,17 +109,38 @@ void filesystem::format(FILE* device, int sectors) {
     std::fseek(device, bg_d_format.bgd_data_blocks, SEEK_SET);
     std::fwrite(de_format, sizeof(dentry), 2, device);
 
-    uint8_t byte = 1 >> 7;
+    uint8_t byte = 1 << 7;
     
     std:fseek(device, bg_d_format.bgd_inode_bitmap, SEEK_SET);
     std::fwrite(&byte, sizeof(uint8_t), 1, device);
 
     //Tira da lista o Bloco utilizado, altera na imagem a lista de blocos livres
+    free_blocks_list.erase(free_blocks_list.begin());
+    x = free_blocks_list.data();
+    bg_d_format.bgd_addr_first_free_block = free_blocks_list[0];
+    updateFreeBlockList(device, x);
 
+}
+
+void filesystem::copyArchiveHDtoFS(FILE* file){
+    
 }
 
 uint32_t filesystem::getBlockSize(){
     return sb->s_block_size;
 }
 
-#endif // FILESYSTEM_H
+void filesystem::updateFreeBlockList(FILE* device, uint32_t *x){
+     
+    // Altera o primeiro Bloco livre no Block Groups Descriptor
+    std::fseek(device, sizeof(superblock) + 12, SEEK_SET );
+    std::fwrite(x, sizeof(uint32_t), 1, device);
+
+     //Reescreve na imagem a lista ligada de blocos livres
+     for(int i = 0; i < free_blocks_list.size(); i++){
+        std::fseek(device, free_blocks_list.at(i), SEEK_SET);
+        std::fwrite(x+(i+1), sizeof(uint32_t), 1, device);
+    }
+}
+
+#endif // FILESYSTEM
