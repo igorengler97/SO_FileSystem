@@ -12,7 +12,7 @@ int main() {
     filesystem *fs;
     FILE* device;
 
-    const char *name_device = "device1.own";
+    const char *name_device = "device256MiB.own";
 
     int op, sectors;
 
