@@ -16,12 +16,19 @@
 #define FT_FIFO      3      //  Arquivo Buffer
 
 #include <stdint.h>
+#include <string>
+#include <cstring>
 
 // Essa estrutura representa uma entrada de diretório. Observe que o campo
 // "nome" é na verdade comprimento variável no disco; para os fins desta
 // estrutura, assumiremos o pior caso de NAME_LEN bytes.
 
 typedef struct dentry {
+    
+    dentry();
+
+    void setName(std::string file_name);
+    
     // O número de inode de 32 bits do arquivo referido por esta entrada 
     // de diretório. Se o número do inode for zero, significa esta entrada de
     // diretório é inválida, e deve ser "ignorada". EXT2 usa uma entrada de 
@@ -33,7 +40,7 @@ typedef struct dentry {
     // no arquivo de diretório, relativo ao início desta entrada do diretório. 
     // Este campo terá um valor pelo menos igual ao tamanho do registro atual, 
     // mas talvez mais, se algum espaço no arquivo de diretório não for utilizado.
-    uint16_t rec_len;
+    uint16_t entry_len;
 
     // Variável não sinalizada de 8 bits, indicando quantos bytes de dados de 
     // caracteres estão no nome. Esse valor nunca deve ser maior que rec_len - 8.
@@ -57,5 +64,17 @@ typedef struct dentry {
     uint8_t file_name[NAME_LEN];
 
 } __attribute__((__packed__)) dentry;
+
+dentry::dentry(){
+    this->inode = 0;
+    this->entry_len = 0;
+    this->name_len = 0;
+    this->file_type = UNKNOWN;
+    std::fill_n(this->file_name, NAME_LEN, NULL);
+}
+
+void dentry::setName(std::string file_name){
+    std::memcpy(this->file_name, file_name.data(), file_name.size() > (NAME_LEN-1) ? (NAME_LEN-1) : file_name.size());
+}
 
 #endif // DIRECTORYENTRY_H
