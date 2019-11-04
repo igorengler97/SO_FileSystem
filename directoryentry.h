@@ -9,7 +9,7 @@
 // subsequentes.
 
 // Constantes usadas em alguns dos campos de entrada do diretório.
-#define NAME_LEN     12
+#define NAME_LEN     24
 #define UNKNOWN      0      //  Tipo de Arquivo Desconhecido
 #define FT_REG_FILE  1      //  Arquivo
 #define FT_DIR       2      //  Diretório
@@ -23,6 +23,7 @@
 // "nome" é na verdade comprimento variável no disco; para os fins desta
 // estrutura, assumiremos o pior caso de NAME_LEN bytes.
 
+// sizeof(dentry) == 32 bytes
 typedef struct dentry {
     
     dentry();
@@ -49,10 +50,9 @@ typedef struct dentry {
     // Variável não sinalizada de 8 bits, indicando o tipo do arquivo. Pode ser
     // qualquer um dos seguintes:
     //
-    // EXT2_FT_UNKNOWN   0  Unknown File Type
-    // EXT2_FT_REG_FILE  1  Regular File
-    // EXT2_FT_DIR       2  Directory File
-    // EXT2_FT_FIFO      3  Buffer File
+    // EXT2_FT_UNKNOWN   0xFF  Unknown File Type
+    // EXT2_FT_REG_FILE  0x01  Regular File
+    // EXT2_FT_DIR       0x02  Directory File
     uint8_t file_type;
 
     // O próprio nome do arquivo. Os nomes dos arquivos serão preenchidos
@@ -65,12 +65,12 @@ typedef struct dentry {
 
 } __attribute__((__packed__)) dentry;
 
-dentry::dentry(){
+dentry::dentry() {
     this->inode = 0;
     this->entry_len = 0;
     this->name_len = 0;
     this->file_type = UNKNOWN;
-    std::fill_n(this->file_name, NAME_LEN, NULL);
+    std::fill_n(this->file_name, NAME_LEN, NULL); 
 }
 
 void dentry::setName(std::string file_name){

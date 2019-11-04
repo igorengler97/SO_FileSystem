@@ -11,6 +11,7 @@
 typedef struct blockgroup_descriptor {
     
     // Constructor
+    blockgroup_descriptor();
     blockgroup_descriptor(unsigned int superblock_size);
 
     // Functions
@@ -33,6 +34,10 @@ typedef struct blockgroup_descriptor {
     uint32_t bgd_addr_first_free_block;
 
 } __attribute__((__packed__)) blockgroup_descriptor;
+
+blockgroup_descriptor::blockgroup_descriptor() {
+
+}
 
 blockgroup_descriptor::blockgroup_descriptor(unsigned int superblock_size){
     this->bgd_inode_bitmap = superblock_size + sizeof(blockgroup_descriptor);
