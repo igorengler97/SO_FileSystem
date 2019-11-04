@@ -27,12 +27,13 @@ typedef struct filesystem {
     filesystem(int sectors);
     void format(FILE* device, int sectors);
     void mount(FILE* device);
+    void listDirectory(FILE* device, uint32_t entry_inode, char* op);
     void makedir(FILE* device, std::string token, uint32_t inode);
     uint32_t findDentryDir(FILE* device, std::string name, uint32_t inode);
-    std::pair<uint32_t, uint32_t> findDentryFile(FILE* device, std::string name, std::string extension, uint32_t inode_entry);
+    std::pair<uint32_t, uint32_t> findDentryFile(FILE* device, uint32_t dir_inode, std::string name_file, FILE* new_file);
     uint32_t seekFreeInode(FILE* device);
     void writeInodeBitmap(FILE* device, uint32_t index_inode);
-    void copy_file_HDtoFS(FILE* file, uint32_t dir_inode, uint32_t inode_entry, uint32_t entry_offset);
+    void copy_file_HDtoFS(FILE* device, uint32_t dir_inode, std::string name_file, FILE* new_file);
     uint32_t getBlockSize();
     
     void updateFreeBlockList(FILE* device, uint32_t *x);
@@ -65,7 +66,7 @@ void filesystem::format(FILE* device, int sectors) {
     sb_format.s_free_blocks_count = sb_format.s_blocks_count;
     sb_format.s_free_inodes_count = sb_format.s_inodes_count;
 
-    sb_format.printSuperblock();
+    //sb_format.printSuperblock();
 
     rewind(device);
     sb_format.writeFile(device);
@@ -76,7 +77,7 @@ void filesystem::format(FILE* device, int sectors) {
         i_format.writeFile(device);
     }
 
-    std::cout<<bg_d_format.bgd_addr_first_free_block << std::endl;
+    //std::cout<<bg_d_format.bgd_addr_first_free_block << std::endl;
 
     // Insere na lista os blocos livres
     // 266753552
@@ -86,7 +87,6 @@ void filesystem::format(FILE* device, int sectors) {
         } else {
             free_blocks_list.push_back(bg_d_format.bgd_addr_first_free_block + (i * 1024));
         }
-        std::cout << free_blocks_list.at(i) << std::endl;
     }
 
     uint32_t *x = free_blocks_list.data();
@@ -147,6 +147,33 @@ void filesystem::mount(FILE* device){
         free_blocks_list.push_back(free_block);
         fseek(device, free_block, SEEK_SET);
     }
+}
+
+void filesystem::listDirectory(FILE* device, uint32_t entry_inode, char* op){
+    //Posiciona no arquivo o local onde esta as Entradas para o inode
+    uint32_t inode_position;
+
+    fseek(device, (this->bg_d->bgd_inode_table + (entry_inode * 64) + 5), SEEK_SET);
+    fread(&inode_position, sizeof(uint32_t), 1, device);
+    fseek(device, inode_position, SEEK_SET);
+
+    for(int index_entry = 0; index_entry < this->sb->s_block_size; index_entry+=32){
+        dentry entry;
+
+        fread(&entry, sizeof(dentry), 1, device);
+
+        if(entry.file_name[0] == 0){
+            std::cout << std::endl;
+            return;
+        }else if (entry.file_type == 0x02){
+            printf("\x1b[32m %25s \x1b[0m", entry.file_name); //diretorio verde
+        }else if(entry.file_type == 0x01){
+            printf("\x1b[33m %25s \x1b[0m", entry.file_name); // arquivo amarelo
+        }
+    }
+    std::cout << std::endl;
+
+    
 }
 
 void filesystem::makedir(FILE* device, std::string name, uint32_t entry_inode) {
@@ -230,7 +257,7 @@ uint32_t filesystem::findDentryDir(FILE* device, std::string name, uint32_t inod
 
     uint32_t inode_position;
 
-    //Posiciona no arquivo o local onde esta as Entradas para o ROOT
+    //Posiciona no arquivo o local onde esta as Entradas para o inode
     fseek(device, (this->bg_d->bgd_inode_table + (inode * 64) + 5), SEEK_SET);
     fread(&inode_position, sizeof(uint32_t), 1, device);
     fseek(device, inode_position, SEEK_SET);
@@ -238,14 +265,7 @@ uint32_t filesystem::findDentryDir(FILE* device, std::string name, uint32_t inod
     for(int index_entry = 0; index_entry < this->sb->s_block_size; index_entry+=32) {
         dentry entry;
         
-        // Procurar nas entradas do ROOT um Diretorio de mesmo nome
         fread(&entry, sizeof(dentry), 1, device);
-
-        //std::cout << "inode: " << entry.inode << std::endl;
-        //std::cout << "entry len: " << entry.entry_len << std::endl;
-        //std::cout << "name len: " << unsigned(entry.name_len) << std::endl;
-        //std::cout << "file type: " << unsigned(entry.file_type) << std::endl;
-        //std::cout << "file name: " << entry.file_name << std::endl;
 
         int j = 0, flag = 0;
         for(j = 0; (j < name.size() && j < 24); j++) {
@@ -262,16 +282,18 @@ uint32_t filesystem::findDentryDir(FILE* device, std::string name, uint32_t inod
     return -1;
 }
 
-std::pair<uint32_t, uint32_t> filesystem::findDentryFile(FILE* device, std::string name, std::string extension, uint32_t inode_entry){
-    if(name.size() > 24)
-        std::cout << "ERROR: Name greater than " << name.size() + 1 << " characters!" << std::endl;
+std::pair<uint32_t, uint32_t> filesystem::findDentryFile(FILE* device, uint32_t dir_inode, std::string name_file, FILE* new_file){
+    if(name_file.size() > 24)
+        std::cout << "ERROR: Name greater than " << name_file.size() + 1 << " characters!" << std::endl;
 
     uint32_t inode_position;
 
     //Posiciona no arquivo o local onde esta as Entradas para o ROOT
-    fseek(device, (this->bg_d->bgd_inode_table + (inode_entry * 64) + 5), SEEK_SET);
+    fseek(device, (this->bg_d->bgd_inode_table + (dir_inode * 64) + 5), SEEK_SET);
     fread(&inode_position, sizeof(uint32_t), 1, device);
     fseek(device, inode_position, SEEK_SET);
+
+    //std::cout << "inode_position " << inode_position << std::endl;
 
     for(int index_entry = 0; index_entry < this->sb->s_block_size; index_entry+=32) {
         dentry entry;
@@ -279,51 +301,22 @@ std::pair<uint32_t, uint32_t> filesystem::findDentryFile(FILE* device, std::stri
         // Procurar nas entradas do ROOT um Diretorio de mesmo nome
         fread(&entry, sizeof(dentry), 1, device);
 
-        //std::cout << "inode: " << entry.inode << std::endl;
-        //std::cout << "entry len: " << entry.entry_len << std::endl;
-        //std::cout << "name len: " << unsigned(entry.name_len) << std::endl;
-        //std::cout << "file type: " << unsigned(entry.file_type) << std::endl;
-        //std::cout << "file name: " << entry.file_name << std::endl;
-
         std::pair<uint32_t, uint32_t> info;
 
-        // FILE_NAME {
         int i = 0, flag = 0;
-        for(i = 0; (i < name.size() && i < 24); i++) {
-            if(entry.file_name[i] != name[i]) {
+        for(i = 0; (i < name_file.size() && i < 24); i++) {
+            if(entry.file_name[i] != name_file[i]) {
                 flag = 1;
                 break;
             }
         }
 
         if(!flag && (i == 24 || entry.file_name[i] == 0) && entry.file_type == 1) {
-            info.first = inode_entry;
-            info.second = index_entry;
+            std::cout << "File already exists!" << std::endl;
+            exit(-1);
         } else {
             continue;
         }
-        // }
-
-        // EXTENSION {
-        flag = 0, i = 0;
-		for( i = 0; i < extension.size() && i < 3; i++ ){
-			if( Rt.extension[i] != extension[i] ){
-				flag = 1;
-				break;
-			}
-            if(entry.[i] != name[i]) {
-                flag = 1;
-                break;
-            }
-		}
-
-		if( !flag && ( i == 3 || Rt.extension[i] == 0) && Rt.attribute_file == 0x20){
-			return ans;
-		}else{
-			continue;
-		}
-        // }
-
     }
     return std::pair<uint32_t, uint32_t>(-1, -1);
 }
@@ -367,10 +360,18 @@ void filesystem::writeInodeBitmap(FILE* device, uint32_t index_inode) {
     fwrite(&entry, sizeof(uint8_t), 1, device);
 }
 
-void filesystem::copy_file_HDtoFS(FILE* file, uint32_t dir_inode, uint32_t inode_entry, uint32_t entry_offset){
+void filesystem::copy_file_HDtoFS(FILE* device, uint32_t dir_inode, std::string name_file, FILE* new_file){
     dentry dentry;
+    uint32_t inode_position;
 
-    fseek(device, );
+    //Posiciona no arquivo o local onde esta as Entradas para diretorio de entrada
+    fseek(device, (this->bg_d->bgd_inode_table + (dir_inode * 64) + 5), SEEK_SET);
+    fread(&inode_position, sizeof(uint32_t), 1, device);
+    fseek(device, inode_position, SEEK_SET);
+
+
+
+
 }
 
 uint32_t filesystem::getBlockSize(){
