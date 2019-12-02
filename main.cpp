@@ -26,7 +26,8 @@ int main(int argc, char *argv[]) {
     if(argc > 2) {           
         op = argv[2];
 
-        if(!strcmp(op, "format")){              //FORMAT - format
+        if(!strcmp(op, "format")){                  //FORMAT - format
+            strcat(name_device, ".own");
             device = fopen(name_device, "w+");
             if(device == NULL){
                 std::cout << "ERROR: Not Open (FORMAT)." << std::endl;
@@ -38,6 +39,8 @@ int main(int argc, char *argv[]) {
             std::cin >> sectors;
             fs->format(device, sectors);
             fclose(device);
+            std::cout << "Successfully Formatted Device." << std::endl;
+            std::cout << "Disk Size: " << ((sectors * 512)/1024)/1024 << "MiB" << std::endl;
 
         }else{
             name_device = argv[1];
@@ -48,7 +51,7 @@ int main(int argc, char *argv[]) {
             }
             
             
-            if(!strcmp(op, "ls")){              //List Directory - ls
+            if(!strcmp(op, "ls")){                  //List Directory - ls
                 if(argc > 3){
                     uint32_t inode = -1;
                     char *token, *str, *tofree;
@@ -78,7 +81,7 @@ int main(int argc, char *argv[]) {
                     free(tofree);
                     fclose(device);
                 }
-            }else if(!strcmp(op, "ls-all")){    // List ALL - ls-all
+            }else if(!strcmp(op, "ls-all")){        // List ALL - ls-all
                 if(argc > 3){
                     uint32_t inode = -1;
                     char *token, *str, *tofree;
@@ -108,7 +111,7 @@ int main(int argc, char *argv[]) {
                     free(tofree);
                     fclose(device);
                 }
-            }else if(!strcmp(op, "makedir")){   // Create Directory - makedir
+            }else if(!strcmp(op, "makedir")){       // Create Directory - makedir
                 if(argc > 3){
                     uint32_t inode = -1;
                     char *token, *str, *tofree;
@@ -140,10 +143,14 @@ int main(int argc, char *argv[]) {
 
                     fclose(device);
                 }
-            }else if(!strcmp(op, "cpy_hdtofs")) {    // Copy File HD to FS
+            }else if(!strcmp(op, "cpy_hdtofs")) {   // Copy File HD to FS
                 if(argc > 4){
                     uint32_t inode = -1;
                     char *token, *str, *tofree;
+                    
+                    std::pair<uint32_t, uint32_t> inode_pair;
+                    char *name_file = NULL, *extension_file = NULL;
+                    char *token_local, *str_local, *tofree_local;
 
                     fs->mount(device);
 
@@ -155,9 +162,23 @@ int main(int argc, char *argv[]) {
                             inode = 0;
 
                         } else if (strstr(token, ".") != NULL) {
-                            std::cout << "ERROR: Invalid Argument (MAKE DIR)" << std::endl;
-                            exit(-1);   // Sai do WHILE
-                    
+                            //Condicoes necessarias para encontrar o nome do arquivo
+                            
+
+                            tofree_local = str_local = strdup(token);
+
+                            while((tofree_local = strsep(&str_local, "."))){
+                                if(name_file == NULL){
+                                    name_file = token_local;
+                                }else{
+                                    extension_file = token_local;
+                                    break;
+                                }
+                            }
+
+                            strcat(name_file, ".");
+                            strcat(name_file, extension_file);
+                                                
                         } else {
                             uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
                             if(new_inode == -1) {
@@ -168,6 +189,9 @@ int main(int argc, char *argv[]) {
                             }
                         }
                     }
+
+                    inode_pair = fs->findDentryFile(device, std::string(token_local), inode);
+                    std::cout << "pairprint: " << inode_pair.first << inode_pair.second;
                     //-
                     
                     FILE* new_file = fopen(argv[4],"r");

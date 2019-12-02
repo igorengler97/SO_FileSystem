@@ -29,8 +29,9 @@ typedef struct filesystem {
     void mount(FILE* device);
     void listDirectory(FILE* device, uint32_t entry_inode, char* op);
     void makedir(FILE* device, std::string token, uint32_t inode);
+    void makefile(FILE* device, std::string name, uint32_t entry_inode, uint32_t entry_offset, FILE* new_file);
     uint32_t findDentryDir(FILE* device, std::string name, uint32_t inode);
-    std::pair<uint32_t, uint32_t> findDentryFile(FILE* device, uint32_t dir_inode, std::string name_file, FILE* new_file);
+    std::pair<uint32_t, uint32_t> findDentryFile(FILE* device, std::string name_file, uint32_t dir_inode);
     uint32_t seekFreeInode(FILE* device);
     void writeInodeBitmap(FILE* device, uint32_t index_inode);
     void copy_file_HDtoFS(FILE* device, uint32_t dir_inode, std::string name_file, FILE* new_file);
@@ -251,6 +252,10 @@ void filesystem::makedir(FILE* device, std::string name, uint32_t entry_inode) {
     writeInodeBitmap(device, free_inode);
 }
 
+void filesystem::makefile(FILE* device, std::string name, uint32_t entry_inode, uint32_t entry_offset, FILE* new_file){
+
+}
+
 uint32_t filesystem::findDentryDir(FILE* device, std::string name, uint32_t inode) {
     if(name.size() > 24)
         std::cout << "ERROR: Name greater than " << name.size() + 1 << " characters!" << std::endl;
@@ -282,7 +287,7 @@ uint32_t filesystem::findDentryDir(FILE* device, std::string name, uint32_t inod
     return -1;
 }
 
-std::pair<uint32_t, uint32_t> filesystem::findDentryFile(FILE* device, uint32_t dir_inode, std::string name_file, FILE* new_file){
+std::pair<uint32_t, uint32_t> filesystem::findDentryFile(FILE* device, std::string name_file, uint32_t dir_inode){
     if(name_file.size() > 24)
         std::cout << "ERROR: Name greater than " << name_file.size() + 1 << " characters!" << std::endl;
 
@@ -307,6 +312,14 @@ std::pair<uint32_t, uint32_t> filesystem::findDentryFile(FILE* device, uint32_t 
         for(i = 0; (i < name_file.size() && i < 24); i++) {
             if(entry.file_name[i] != name_file[i]) {
                 flag = 1;
+                break;
+            }
+        }
+
+        int j = 0;
+        for(j = 0; (j < name_file.size() && i < 24); i++) {
+            if(entry.file_name[i] != '0') {
+                flag = -1;
                 break;
             }
         }
