@@ -4,7 +4,7 @@
 #define OWNFS_ROOT_INODE        2         // Inode do Diretório Raiz
 #define OWNFS_TYPE_FILE         0x01
 #define OWNFS_TYPE_DIR          0x02
-#define OWNFS_TYPE_UNK          0xFF
+#define OWNFS_TYPE_UNK          0xE5
 #define OWNFS_I_BLOCK_POINTERS  14
 
 #include <stdint.h>
@@ -22,9 +22,9 @@ typedef struct inode {
     //  Variável de 16 bits usado para indicar o formato do arquivo.
     //
     //  -- formato do arquivo --
-    //  OWNFS_TYPE_FILE    0x8000  file
-    //  OWNFS_TYPE_DIR     0x4000  directory
-    //  OWNFS_TYPE_UNK     0x1000  unknown
+    //  OWNFS_TYPE_FILE    0x01  file
+    //  OWNFS_TYPE_DIR     0x02  directory
+    //  OWNFS_TYPE_UNK     0xE5  unknown
     uint8_t i_type;
 
     // Variável de 32 bits indicando o tamanho do arquivo em bytes
@@ -51,7 +51,7 @@ inode::inode(){
     this->i_type = OWNFS_TYPE_UNK;
     this->i_size = 0;
     std::fill_n(this->i_block, 14, NULL);
-    std::fill_n(this->i_unused, 2, NULL);
+    std::fill_n(this->i_unused, 3, NULL);
 }
 
 void inode::writeFile(FILE* device){

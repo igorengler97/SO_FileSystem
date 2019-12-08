@@ -102,12 +102,17 @@ int main(int argc, char *argv[]) {
                             uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
                             if(new_inode == -1) {
                                 std::cout << "Directory not found!" << std::endl;
+                                inode = -1;
+                                exit(-1);
                             }else {
                                 inode = new_inode;
                             }
                         }
                     }
-                    fs->listDirectory(device, inode, op);
+                    if(inode != -1){
+                        fs->listDirectory(device, inode, op);
+                    }
+                    
                     free(tofree);
                     fclose(device);
                 }
@@ -124,7 +129,7 @@ int main(int argc, char *argv[]) {
                         if(!strcmp(token, "")) {
                             inode = 0;
 
-                        } else if (strstr(token, ".") != NULL) {
+                        } else if (strstr(token, ".") != NULL) { 
                             std::cout << "ERROR: Invalid Argument (MAKE DIR)" << std::endl;
                             exit(-1);   // Sai do WHILE
                     
@@ -143,6 +148,61 @@ int main(int argc, char *argv[]) {
 
                     fclose(device);
                 }
+            }else if(!strcmp(op, "rmv")){            // Remove Directory, subdirectories and files - rmv
+                /* 01 - Ver todas as entradas que o Diretório a ser excluido possui
+                        salvar os inodes referentes a todas as entradas, fazer o mesmo
+                        recursivamente para todos os subdiretorios no diretorio alvo
+                        ao final teremos uma lista de todos os inodes, de todos os
+                        diretorios e subdiretorios do diretorio alvo, dessa forma 
+                        podemos preencher todos os blocos referenciados com 0, é 
+                        necessaŕio tamber criar uma lista com a posicao de todos os blocos
+                        que serão liberados, para poder adiciona-los a lista de blocos livres
+                        apos isso e necessario apagar as informacoes nos blocos, nos inodes,
+                        e entao adicionar os novos blocos livres a lista e liberar os inode bitmaps
+                */
+                
+                if(argc > 3){
+                    uint32_t inode = -1;
+                    char *token, *str, *tofree;
+
+                    fs->mount(device);
+
+                    tofree = str = strdup(argv[3]);
+
+                    while((token = strsep(&str, "/")))  {
+                        
+                        if(!strcmp(token, "")) {
+                            inode = 0;
+                        } else if (strstr(token, ".") != NULL) { //Se verdadeiro quer dizer que é arquivo
+                            //uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
+                            // Acima: Procura o inode referente a entrada de arquivo 
+
+
+                            
+                            std::cout << "E um arquivo que deve ser deletado!" << std::endl;
+                            exit(-1);
+                        } else {
+                            uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
+                            if(new_inode == -1) {
+                                std::cout << "a pasta nao existe!" << std::endl;
+                                inode = -1;
+                                exit(-1);
+                                //fs->makedir(device, std::string(token), inode);
+                                //inode = fs->findDentryDir(device, std::string(token), inode);
+                            }else {
+                                inode = new_inode;
+                            }
+                        }
+                        std::cout << token << std::endl; 
+                    }
+                    
+                    if(inode != -1){
+                        std::cout << "Chamar funcao de rmv para inode = " << inode << std::endl;
+                        fs->rmv(device, inode);
+                    }
+
+                }
+
             }else if(!strcmp(op, "cpy_hdtofs")) {   // Copy File HD to FS
                 if(argc > 4){
                     uint32_t inode = -1;

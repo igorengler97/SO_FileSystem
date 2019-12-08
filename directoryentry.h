@@ -10,10 +10,9 @@
 
 // Constantes usadas em alguns dos campos de entrada do diretório.
 #define NAME_LEN     24
-#define UNKNOWN      0      //  Tipo de Arquivo Desconhecido
-#define FT_REG_FILE  1      //  Arquivo
-#define FT_DIR       2      //  Diretório
-#define FT_FIFO      3      //  Arquivo Buffer
+#define UNKNOWN      0xE5      //  Tipo de Arquivo Desconhecido
+#define FT_REG_FILE  0x01      //  Arquivo
+#define FT_DIR       0x02      //  Diretório
 
 #include <stdint.h>
 #include <string>
@@ -50,7 +49,7 @@ typedef struct dentry {
     // Variável não sinalizada de 8 bits, indicando o tipo do arquivo. Pode ser
     // qualquer um dos seguintes:
     //
-    // EXT2_FT_UNKNOWN   0xFF  Unknown File Type
+    // EXT2_FT_UNKNOWN   0xE5  Unknown File Type
     // EXT2_FT_REG_FILE  0x01  Regular File
     // EXT2_FT_DIR       0x02  Directory File
     uint8_t file_type;

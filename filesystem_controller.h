@@ -30,6 +30,7 @@ typedef struct filesystem {
     void listDirectory(FILE* device, uint32_t entry_inode, char* op);
     void makedir(FILE* device, std::string token, uint32_t inode);
     void makefile(FILE* device, std::string name, uint32_t entry_inode, uint32_t entry_offset, FILE* new_file);
+    void rmv(FILE* device, uint32_t inode);
     uint32_t findDentryDir(FILE* device, std::string name, uint32_t inode);
     std::pair<uint32_t, uint32_t> findDentryFile(FILE* device, std::string name_file, uint32_t dir_inode);
     uint32_t seekFreeInode(FILE* device);
@@ -256,6 +257,86 @@ void filesystem::makefile(FILE* device, std::string name, uint32_t entry_inode, 
 
 }
 
+void filesystem::rmv(FILE* device, uint32_t entry_inode) {
+    // 1 - Cria uma lista/pilha e coloca o Número do INODE do Diretório/Arquivo a ser Excluido
+    // 2 - Procura na Inode Table a informação referente ao Tipo de Entrada do Inode existente na LISTA DE INODES
+    //      2.1 - Se for Arquivo apenas continua para o proximo inode da LISTA
+    //      2.2 - Senão se for Diretório, ir até os Ponteiros de Data Block, e ler as Entradas de Cada DATA BLOCK daquele Diretorio
+    // 3 - Para cada entrada do diretório, colocar na pilha os inodes referentes a cada entrada;
+    // 4 - Anda na lista, para o próximo Inode, repete o processo até que se chegue ao fim da lista, ou seja, nao tenha mais entradas para ler (DEEP SEARCH)
+    // 5 - Nesse estado teremos uma pilha com todos os INODES, a partir disso começar a desempilhar
+    // 6 - Para cada inode, deve-se:
+    //      6.1 - Escrever 0xE5 nas entradas dos Data Blocks, para delimitar entrada/arquivo excluido;
+    //      6.2 - Adicionar a Lista de Blocos Livres os Blocos Apontados pelo Inode;
+    //      6.3 - Atualizar Inode_Bitmap com os inodes agora livres;
+    //      6.4 - Zerar Inodes
+
+    uint8_t inode_type;
+    uint32_t i_block_position[OWNFS_I_BLOCK_POINTERS];
+
+    // 1
+    std::vector<uint32_t> deep_search_vector;
+    deep_search_vector.push_back(entry_inode);
+
+    for (int i = 0; i < deep_search_vector.size(); i++){
+        std::cout << deep_search_vector.size() << " - ";
+        inode current_inode;
+        uint32_t current_inode_number = deep_search_vector.at(i);
+
+        std::cout << "CURRENT_INODE: " << current_inode_number << std::endl;
+
+        // 2
+        fseek(device, (this->bg_d->bgd_inode_table + (current_inode_number * 64)), SEEK_SET);
+        fread(&current_inode, sizeof(inode), 1, device);
+        
+        // 2.1
+        if(current_inode.i_type == 0x01){
+            std::cout << "É arquivo, portanto é só continuar, para depois excluir utilizando o vector" << std::endl;
+            continue;
+        
+        //2.2
+        }else if(current_inode.i_type == 0x02){
+            std::cout << "É diretorio, portanto precisa-se salvar todas as entradas dele" << std::endl;
+            // 12 ponteiros direto para BLOCOS, portanto deve-se conferir todos
+            for(int block_pointer = 0; block_pointer < 12; block_pointer++){
+                // Se for "NULL" é porque nao esta sendo usado, então para
+                if(current_inode.i_block[block_pointer] == 0x0000){
+                    std::cout << " 0 - PONTEIRO PARA O BLOCO: " << current_inode.i_block[block_pointer] << " ";
+                    break;
+                }
+
+                // Pular "." e ".."
+                fseek(device, current_inode.i_block[block_pointer] + 64, SEEK_SET);
+                
+                // Ler entrada por entrada, jogando os INODES dela no VECTOR
+                for(int index_entry = 64; index_entry < this->sb->s_block_size; index_entry+=32) {
+                    dentry entry;
+                    fread(&entry, sizeof(dentry), 1, device);
+                    std::cout << "PONTEIRO PARA O BLOCO: " << current_inode.i_block[block_pointer] << std::endl;
+                    std::cout << "ENTRY_INODE: " << entry.inode << std::endl;
+                    //Se inode = 0 é porque não possui entrada
+                    if(entry.inode == 0x0000){
+                        break;
+                    }else{
+                        std::cout << "TESTE 1 - INODES FROM DIRECTORY: " << entry.inode << " ";
+                        deep_search_vector.push_back(entry.inode);
+                    }
+                }
+                std::cout << std::endl;
+            }
+
+            std::cout<<std::endl;
+            
+        }else{
+            std::cout << "Inexistente, Corrompido ou Excluido" << std::endl;
+        }
+    }
+
+    for (auto i = deep_search_vector.begin(); i != deep_search_vector.end(); ++i)
+        std::cout << *i << " ";
+
+}
+
 uint32_t filesystem::findDentryDir(FILE* device, std::string name, uint32_t inode) {
     if(name.size() > 24)
         std::cout << "ERROR: Name greater than " << name.size() + 1 << " characters!" << std::endl;
@@ -355,6 +436,7 @@ uint32_t filesystem::seekFreeInode(FILE* device) {
             }
         }
     }
+    return -1;
 }
 
 void filesystem::writeInodeBitmap(FILE* device, uint32_t index_inode) {
