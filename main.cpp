@@ -72,47 +72,13 @@ int main(int argc, char *argv[]) {
                             uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
                             if(new_inode == -1) {
                                 std::cout << "Directory not found!" << std::endl;
-                            }else {
-                                inode = new_inode;
-                            }
-                        }
-                    }
-                    fs->listDirectory(device, inode, op);
-                    free(tofree);
-                    fclose(device);
-                }
-            }else if(!strcmp(op, "ls-all")){        // List ALL - ls-all
-                if(argc > 3){
-                    uint32_t inode = -1;
-                    char *token, *str, *tofree;
-
-                    fs->mount(device);
-
-                    tofree = str = strdup(argv[3]);
-
-                    while((token = strsep(&str, "/"))) {
-                        if(!strcmp(token, "")) {                    // Se a entrada for somente "/", ou seja, o ROOT
-                            inode = 0;
-
-                        } else if (strstr(token, ".") != NULL) {
-                            std::cout << "ERROR: Invalid Argument (LS-ALL)" << std::endl;
-                            exit(-1);   // Sai do WHILE
-                    
-                        } else {
-                            uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
-                            if(new_inode == -1) {
-                                std::cout << "Directory not found!" << std::endl;
-                                inode = -1;
                                 exit(-1);
                             }else {
                                 inode = new_inode;
                             }
                         }
                     }
-                    if(inode != -1){
-                        fs->listDirectory(device, inode, op);
-                    }
-                    
+                    fs->listDirectory(device, inode, op);
                     free(tofree);
                     fclose(device);
                 }
@@ -177,10 +143,12 @@ int main(int argc, char *argv[]) {
                             //uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
                             // Acima: Procura o inode referente a entrada de arquivo 
 
+                            // FAZER UMA VARIAVEL ANT QUE RECEBE A PASTA ANTERIOR AO ARQUIVO, E PASSA O INODE DELA PARA EXCLUIR A ENTRADA DO ARQUIVO
 
-                            
                             std::cout << "E um arquivo que deve ser deletado!" << std::endl;
-                            exit(-1);
+                            uint32_t new_inode = fs->findDentryFile(device, std::string(token), inode);
+                            inode = new_inode;
+                            break;
                         } else {
                             uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
                             if(new_inode == -1) {
@@ -201,103 +169,15 @@ int main(int argc, char *argv[]) {
                         fs->rmv(device, inode);
                     }
 
+                    std::cout << "LIBERA DEVICE";
+                    free(tofree);
+                    fclose(device);
                 }
 
             }else if(!strcmp(op, "cpy_hdtofs")) {   // Copy File HD to FS
                 if(argc > 4){
-                    uint32_t inode = -1;
-                    char *token, *str, *tofree;
-                    
-                    std::pair<uint32_t, uint32_t> inode_pair;
-                    char *name_file = NULL, *extension_file = NULL;
-                    char *token_local, *str_local, *tofree_local;
-
-                    fs->mount(device);
-
-                    //- Encontra o inode do diretorio de Entrada do Arquivo
-                    tofree = str = strdup(argv[3]);
-                
-                    while((token = strsep(&str, "/"))) {
-                        if(!strcmp(token, "")) {
-                            inode = 0;
-
-                        } else if (strstr(token, ".") != NULL) {
-                            //Condicoes necessarias para encontrar o nome do arquivo
-                            
-
-                            tofree_local = str_local = strdup(token);
-
-                            while((tofree_local = strsep(&str_local, "."))){
-                                if(name_file == NULL){
-                                    name_file = token_local;
-                                }else{
-                                    extension_file = token_local;
-                                    break;
-                                }
-                            }
-
-                            strcat(name_file, ".");
-                            strcat(name_file, extension_file);
-                                                
-                        } else {
-                            uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
-                            if(new_inode == -1) {
-                                fs->makedir(device, std::string(token), inode);
-                                inode = fs->findDentryDir(device, std::string(token), inode);
-                            }else {
-                                inode = new_inode;
-                            }
-                        }
-                    }
-
-                    inode_pair = fs->findDentryFile(device, std::string(token_local), inode);
-                    std::cout << "pairprint: " << inode_pair.first << inode_pair.second;
-                    //-
-                    
-                    FILE* new_file = fopen(argv[4],"r");
-                    //precisar dar um jeito de pegar o nome do arquivo pelo path/arg
-
-                    char *namef;
-                    namef = strdup("teste.txt");
-
+                    exit(-1);
                 }
-            /*
-            uint32_t inode = -1;
-            char *token, *str, *tofree;
-
-            device = fopen(name_device, "r+");
-            if(device == NULL){
-                std::cout << "ERROR: Not Open (Copy HD->FS)." << std::endl;
-                return -1;
-            }
-
-            fs->mount(device);
-            
-            tofree = str = strdup("/folder1");
-            
-            while((token = strsep(&str, "/"))) {
-                if(!strcmp(token, "")) {                    // Se a entrada for somente "/", ou seja, o ROOT
-                    inode = 0;
-
-                } else if (strstr(token, ".") != NULL) {
-                    std::cout << "ERROR: Already exists (Copy HD->FS)" << std::endl;
-                    exit(-1);   // Sai do WHILE
-                
-                } else {
-                    uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
-                    if(new_inode == -1) {
-                        std::cout << "ERROR: Directory not found! (Copy HD->FS)" << std::endl;
-                        return -1;
-                    } else {
-                        inode = new_inode; //Inode referente a pasta onde sera salvo o arquivo
-                    }
-                }
-            }
-        
-            FILE* cpy_file = fopen("teste.txt", "r");
-        
-
-            fclose(device);*/
         }else{
             std::cout << "Invalid Operation!" << std::endl;
         }
