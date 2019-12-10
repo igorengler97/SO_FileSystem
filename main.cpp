@@ -130,6 +130,7 @@ int main(int argc, char *argv[]) {
                 
                 if(argc > 3){
                     uint32_t inode = -1;
+                    uint32_t parent_inode = -1;
                     char *token, *str, *tofree;
 
                     fs->mount(device);
@@ -147,23 +148,26 @@ int main(int argc, char *argv[]) {
                             // FAZER UMA VARIAVEL ANT QUE RECEBE A PASTA ANTERIOR AO ARQUIVO, E PASSA O INODE DELA PARA EXCLUIR A ENTRADA DO ARQUIVO
 
                             std::cout << "MESSAGE (RMV): FILE!" << std::endl;
+                            parent_inode = inode;
                             uint32_t new_inode = fs->findDentryFile(device, std::string(token), inode);
                             inode = new_inode;
                             break;
                         } else {
+                            parent_inode = inode;
                             uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
                             if(new_inode == -1) {
                                 std::cout << "Directory not found!" << std::endl;
                                 inode = -1;
                                 exit(-1);
                             }else {
+                                parent_inode = inode;
                                 inode = new_inode;
                             }
                         }
                     }
                     
                     if(inode != -1){
-                        fs->rmv(device, inode);
+                        fs->rmv(device, inode, parent_inode);
                     }
 
                     free(tofree);

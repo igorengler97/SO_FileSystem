@@ -30,7 +30,7 @@ typedef struct filesystem {
     void listDirectory(FILE* device, uint32_t entry_inode, char* op);
     void makedir(FILE* device, std::string token, uint32_t inode);
     void makefile(FILE* device, std::string name, uint32_t entry_inode, uint32_t entry_offset, FILE* new_file);
-    void rmv(FILE* device, uint32_t inode);
+    void rmv(FILE* device, uint32_t inode, uint32_t parent_inode);
     uint32_t findDentryDir(FILE* device, std::string name, uint32_t inode);
     uint32_t findDentryFile(FILE* device, std::string name, uint32_t inode);
     uint32_t seekFreeInode(FILE* device);
@@ -255,7 +255,7 @@ void filesystem::makedir(FILE* device, std::string name, uint32_t entry_inode) {
 void filesystem::makefile(FILE* device, std::string name, uint32_t entry_inode, uint32_t entry_offset, FILE* new_file){
 }
 
-void filesystem::rmv(FILE* device, uint32_t entry_inode) {
+void filesystem::rmv(FILE* device, uint32_t entry_inode, uint32_t parent_inode) {
     /*  RESUMO DE PASSOS >>
         -------------------------------------------------------------------------------------------------------------------------------------------------------
         1 - Cria uma lista/pilha e coloca o Número do INODE do Diretório/Arquivo a ser Excluido
@@ -275,6 +275,8 @@ void filesystem::rmv(FILE* device, uint32_t entry_inode) {
 
     uint8_t inode_type;
     uint32_t i_block_position[OWNFS_I_BLOCK_POINTERS];
+
+    std::cout << "PARENT INODE= " << (unsigned)parent_inode << std::endl;
 
     // 1
     std::vector<uint32_t> deep_search_vector;
@@ -345,8 +347,43 @@ void filesystem::rmv(FILE* device, uint32_t entry_inode) {
         // Se for diretorio, é preciso escrever 0xE5 nas entradas antes de apagar
         if(deleted_inode.i_type == 0x01){       //ARQUIVO
             
+            for(int current_pointer = 0; current_pointer < 12; current_pointer++){
+                if(deleted_inode.i_block[current_pointer] == 0x00000000){
+                    break;
+                }
+
+                // ADICIONA NOVO BLOCO LIVRE A LISTA DE LIVRES
+                free_blocks_list.push_back(deleted_inode.i_block[current_pointer]);
+            }
+
             writeFreeInodeBitmap(device, deep_search_vector.at(deep_search_vector.size() - 1));
             deep_search_vector.pop_back();
+
+            // 2 - É preciso apagar as entradas dos diretorios que contem o diretorio apagado
+            inode_parent_number = parent_inode;
+            fseek(device, (this->bg_d->bgd_inode_table + (inode_parent_number * 64)), SEEK_SET);
+            fread(&inode_parent, sizeof(inode), 1, device);
+
+            for(int current_pointer = 0; current_pointer < 12; current_pointer++){
+                
+                if(inode_parent.i_block[current_pointer] == 0x00000000){
+                    break;
+                }
+
+                for(int index_entry = 0; index_entry < this->sb->s_block_size; index_entry+=32) {
+                    dentry entry;
+                    fseek(device, inode_parent.i_block[current_pointer] + index_entry, SEEK_SET);
+                    fread(&entry, sizeof(dentry), 1, device);
+                    if(entry.inode == 0x00000000 && entry.file_type == 0x00){
+                        break;
+                    }else if(entry.inode == deleted_inode_number){
+                        fseek(device, inode_parent.i_block[current_pointer] + (index_entry + 7), SEEK_SET);
+                        fwrite(&filetype_mask, sizeof(uint8_t), 1, device);
+                    }else{
+                        continue;
+                    }
+                }
+            }
 
         }else if(deleted_inode.i_type == 0x02){ //DIRETORIO
             // 1 - Escrever E5 em todas as entradas do diretorio a ser excluido
@@ -401,11 +438,11 @@ void filesystem::rmv(FILE* device, uint32_t entry_inode) {
                 }
             }
             ///////////////////////////////////////////////////////////////////////////////////////
-        }
 
-        // Liberar os INODES
-        writeFreeInodeBitmap(device, deep_search_vector.at(deep_search_vector.size() - 1));
-        deep_search_vector.pop_back();
+            // Liberar os INODES
+            writeFreeInodeBitmap(device, deep_search_vector.at(deep_search_vector.size() - 1));
+            deep_search_vector.pop_back();
+        }
     }
 
     // Atualiza Blocos Livres
