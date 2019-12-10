@@ -8,6 +8,7 @@
 #include <iostream>
 #include "filesystem_controller.h"
 
+
 int main(int argc, char *argv[]) {
     
     filesystem *fs = new filesystem();
@@ -145,31 +146,26 @@ int main(int argc, char *argv[]) {
 
                             // FAZER UMA VARIAVEL ANT QUE RECEBE A PASTA ANTERIOR AO ARQUIVO, E PASSA O INODE DELA PARA EXCLUIR A ENTRADA DO ARQUIVO
 
-                            std::cout << "E um arquivo que deve ser deletado!" << std::endl;
+                            std::cout << "MESSAGE (RMV): FILE!" << std::endl;
                             uint32_t new_inode = fs->findDentryFile(device, std::string(token), inode);
                             inode = new_inode;
                             break;
                         } else {
                             uint32_t new_inode = fs->findDentryDir(device, std::string(token), inode);
                             if(new_inode == -1) {
-                                std::cout << "a pasta nao existe!" << std::endl;
+                                std::cout << "Directory not found!" << std::endl;
                                 inode = -1;
                                 exit(-1);
-                                //fs->makedir(device, std::string(token), inode);
-                                //inode = fs->findDentryDir(device, std::string(token), inode);
                             }else {
                                 inode = new_inode;
                             }
                         }
-                        std::cout << token << std::endl; 
                     }
                     
                     if(inode != -1){
-                        std::cout << "Chamar funcao de rmv para inode = " << inode << std::endl;
                         fs->rmv(device, inode);
                     }
 
-                    std::cout << "LIBERA DEVICE";
                     free(tofree);
                     fclose(device);
                 }
@@ -178,14 +174,11 @@ int main(int argc, char *argv[]) {
                 if(argc > 4){
                     exit(-1);
                 }
-        }else{
-            std::cout << "Invalid Operation!" << std::endl;
-        }
 
-        //std::cout << fs->getBlockSize() << std::endl;
-
-        return 0;
+            }else{
+                std::cout << "Invalid Operation!" << std::endl;
+            }
     
         }
     }
-}   
+}

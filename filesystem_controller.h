@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <stdlib.h>
 #include <math.h>
-
+#include <cstdio>
 #include "superblock.h"
 #include "blockgroup_descriptor.h"
 #include "inode_bitmap.h"
@@ -34,6 +34,7 @@ typedef struct filesystem {
     uint32_t findDentryDir(FILE* device, std::string name, uint32_t inode);
     uint32_t findDentryFile(FILE* device, std::string name, uint32_t inode);
     uint32_t seekFreeInode(FILE* device);
+    void writeFreeInodeBitmap(FILE* device, uint32_t index_inode);
     void writeInodeBitmap(FILE* device, uint32_t index_inode);
     void copy_file_HDtoFS(FILE* device, uint32_t dir_inode, std::string name_file, FILE* new_file);
     uint32_t getBlockSize();
@@ -48,7 +49,7 @@ filesystem::filesystem(){
     this->d = new dentry;
 }
 
-void filesystem::format(FILE* device, int sectors) {
+void filesystem::format(FILE* device, int sectors) {    // FORMATAR DISPOSITIVO
     superblock sb_format;
     blockgroup_descriptor bg_d_format(sizeof(sb_format));
     inode_bitmap ib_format;
@@ -60,8 +61,6 @@ void filesystem::format(FILE* device, int sectors) {
     sb_format.s_free_blocks_count = sb_format.s_blocks_count;
     sb_format.s_free_inodes_count = sb_format.s_inodes_count;
 
-    //sb_format.printSuperblock();
-
     rewind(device);
     sb_format.writeFile(device);
     bg_d_format.writeFile(device);
@@ -71,10 +70,7 @@ void filesystem::format(FILE* device, int sectors) {
         i_format.writeFile(device);
     }
 
-    //std::cout<<bg_d_format.bgd_addr_first_free_block << std::endl;
-
-    // Insere na lista os blocos livres
-    // 266753552
+    // Adiciona a lista (free_blocks_list) os BLOCOS LIVRES.
     for(int i = 0; i < (((sectors*512)-bg_d_format.bgd_data_blocks)/sb_format.s_block_size); i++) {
         if(i == 0) {
             free_blocks_list.push_back(bg_d_format.bgd_addr_first_free_block);
@@ -83,8 +79,10 @@ void filesystem::format(FILE* device, int sectors) {
         }
     }
 
+    // Escreve no Dispositivo (device), para criar uma
+    // LISTA LIGADA DE BLOCOS LIVRES 
     uint32_t *x = free_blocks_list.data();
-    
+
     for(int i = 0; i < free_blocks_list.size(); i++){
         std::fseek(device, free_blocks_list.at(i), SEEK_SET);
         std::fwrite(x+(i+1), sizeof(uint32_t), 1, device);
@@ -93,7 +91,11 @@ void filesystem::format(FILE* device, int sectors) {
             std::fwrite(x+(i+1), sizeof(uint32_t), 1, device);
         }
     }
+    uint32_t last_mask = 0xFFFFFFFF;    // Mascara para escrever no ultimo bloco livre 0xFFFF
+    fseek(device, free_blocks_list.at(free_blocks_list.size() - 1), SEEK_SET);
+    std::fwrite(&last_mask, sizeof(uint32_t), 1, device);
 
+    // Cria as entradas primárias do ROOT "." e ".."
     i_format.i_type = 2;
     i_format.i_block[0] = bg_d_format.bgd_data_blocks;
     i_format.i_size = 0;
@@ -120,14 +122,16 @@ void filesystem::format(FILE* device, int sectors) {
     std:fseek(device, bg_d_format.bgd_inode_bitmap, SEEK_SET);
     std::fwrite(&byte, sizeof(uint8_t), 1, device);
 
-    //Tira da lista o Bloco utilizado, altera na imagem a lista de blocos livres
+    // Atualiza a LISTA DE BLOCOS LIVRES, retirando o BLOCO alocado para o ROOT
     free_blocks_list.erase(free_blocks_list.begin());
     x = free_blocks_list.data();
     bg_d_format.bgd_addr_first_free_block = free_blocks_list[0];
     updateFreeBlockList(device, x);
 }
 
-void filesystem::mount(FILE* device){
+void filesystem::mount(FILE* device){   // MONTAR DISPOSITIVO
+    // Faz a leitura do Dispositivo, carregando a informações
+    // necessárias para futuras operações.
     fread(sb, sizeof(superblock), 1, device);
     fread(bg_d, sizeof(blockgroup_descriptor), 1, device);
     
@@ -136,16 +140,19 @@ void filesystem::mount(FILE* device){
     free_blocks_list.push_back(bg_d->bgd_addr_first_free_block);
     fseek(device, bg_d->bgd_addr_first_free_block, SEEK_SET);
     
-    while(free_block != 0x0000) {
+    while(free_block != 0xFFFFFFFF) {
         fread(&free_block, sizeof(uint32_t), 1, device);
-        free_blocks_list.push_back(free_block);
-        fseek(device, free_block, SEEK_SET);
+        if(free_block == 0x00000000 || free_block == 0xFFFFFFFF){
+            free_block = 0xFFFFFFFF;
+        }else{
+            free_blocks_list.push_back(free_block);
+            fseek(device, free_block, SEEK_SET);
+        }
     }
-    free_blocks_list.pop_back();
 }
 
-void filesystem::listDirectory(FILE* device, uint32_t entry_inode, char* op){
-    //Posiciona no arquivo o local onde esta as Entradas para o inode
+void filesystem::listDirectory(FILE* device, uint32_t entry_inode, char* op){   // LISTAR DIRETÓRIOS/ARQUIVOS
+    // Aponta na INODE TABLE onde está o respectivo inode e seus ponteiros.
     uint32_t inode_position;
 
     fseek(device, (this->bg_d->bgd_inode_table + (entry_inode * 64) + 5), SEEK_SET);
@@ -167,11 +174,10 @@ void filesystem::listDirectory(FILE* device, uint32_t entry_inode, char* op){
         }
     }
     std::cout << std::endl;
-
     
 }
 
-void filesystem::makedir(FILE* device, std::string name, uint32_t entry_inode) {
+void filesystem::makedir(FILE* device, std::string name, uint32_t entry_inode) {    // CRIAR DIRETÓRIOS
     // Encontrar um Inode livre no InodeBitmap
     uint32_t free_inode = seekFreeInode(device);
 
@@ -229,7 +235,7 @@ void filesystem::makedir(FILE* device, std::string name, uint32_t entry_inode) {
         fread(&entry, sizeof(dentry), 1, device);
         int flag = 0, j = 0;
         for(j = 0; j < 24; j++) {
-            if(entry.file_name[j] != 0) {
+            if(entry.file_name[j] != 0 && (entry.file_type != 0xE5)) {
                 flag = 1;
                 break;
             }
@@ -250,18 +256,22 @@ void filesystem::makefile(FILE* device, std::string name, uint32_t entry_inode, 
 }
 
 void filesystem::rmv(FILE* device, uint32_t entry_inode) {
-    // 1 - Cria uma lista/pilha e coloca o Número do INODE do Diretório/Arquivo a ser Excluido
-    // 2 - Procura na Inode Table a informação referente ao Tipo de Entrada do Inode existente na LISTA DE INODES
-    //      2.1 - Se for Arquivo apenas continua para o proximo inode da LISTA
-    //      2.2 - Senão se for Diretório, ir até os Ponteiros de Data Block, e ler as Entradas de Cada DATA BLOCK daquele Diretorio
-    // 3 - Para cada entrada do diretório, colocar na pilha os inodes referentes a cada entrada;
-    // 4 - Anda na lista, para o próximo Inode, repete o processo até que se chegue ao fim da lista, ou seja, nao tenha mais entradas para ler (DEEP SEARCH)
-    // 5 - Nesse estado teremos uma pilha com todos os INODES, a partir disso começar a desempilhar
-    // 6 - Para cada inode, deve-se:
-    //      6.1 - Escrever 0xE5 nas entradas dos Data Blocks, para delimitar entrada/arquivo excluido;
-    //      6.2 - Adicionar a Lista de Blocos Livres os Blocos Apontados pelo Inode;
-    //      6.3 - Atualizar Inode_Bitmap com os inodes agora livres;
-    //      6.4 - Zerar Inodes
+    /*  RESUMO DE PASSOS >>
+        -------------------------------------------------------------------------------------------------------------------------------------------------------
+        1 - Cria uma lista/pilha e coloca o Número do INODE do Diretório/Arquivo a ser Excluido
+        2 - Procura na Inode Table a informação referente ao Tipo de Entrada do Inode existente na LISTA DE INODES
+            2.1 - Se for Arquivo apenas continua para o proximo inode da LISTA
+            2.2 - Senão se for Diretório, ir até os Ponteiros de Data Block, e ler as Entradas de Cada DATA BLOCK daquele Diretorio
+        3 - Para cada entrada do diretório, colocar na pilha os inodes referentes a cada entrada;
+        4 - Anda na lista, para o próximo Inode, repete o processo até que se chegue ao fim da lista, ou seja, nao tenha mais entradas para ler (DEEP SEARCH)
+        5 - Nesse estado teremos uma pilha com todos os INODES, a partir disso começar a desempilhar
+        6 - Para cada inode, deve-se:
+            6.1 - Escrever 0xE5 nas entradas dos Data Blocks, para delimitar entrada/arquivo excluido;
+            6.2 - Adicionar a Lista de Blocos Livres os Blocos Apontados pelo Inode;
+            6.3 - Atualizar Inode_Bitmap com os inodes agora livres;
+            6.4 - Zerar Inodes
+        --------------------------------------------------------------------------------------------------------------------------------------------------------
+    */
 
     uint8_t inode_type;
     uint32_t i_block_position[OWNFS_I_BLOCK_POINTERS];
@@ -271,11 +281,8 @@ void filesystem::rmv(FILE* device, uint32_t entry_inode) {
     deep_search_vector.push_back(entry_inode);
 
     for (int i = 0; i < deep_search_vector.size(); i++){
-        std::cout << deep_search_vector.size() << " - ";
         inode current_inode;
         uint32_t current_inode_number = deep_search_vector.at(i);
-
-        std::cout << "CURRENT_INODE: " << current_inode_number << std::endl;
 
         // 2
         fseek(device, (this->bg_d->bgd_inode_table + (current_inode_number * 64)), SEEK_SET);
@@ -283,18 +290,16 @@ void filesystem::rmv(FILE* device, uint32_t entry_inode) {
         
         // 2.1
         if(current_inode.i_type == 0x01){
-            std::cout << "É arquivo, portanto é só continuar, para depois excluir utilizando o vector" << std::endl;
+            // É arquivo, portanto apenas continuar para excluir.
             continue;
         
         //2.2
         }else if(current_inode.i_type == 0x02){
-            std::cout << "É diretorio, portanto precisa-se salvar todas as entradas dele" << std::endl;
-            // 3
+            // 3 - Como é diretório deve-se salvar todas as suas entradas antes de ir para o próximo
             // 12 ponteiros direto para BLOCOS, portanto deve-se conferir todos
             for(int block_pointer = 0; block_pointer < 12; block_pointer++){
                 // Se for "NULL" é porque nao esta sendo usado, então para
                 if(current_inode.i_block[block_pointer] == 0x00000000){
-                    std::cout << " 0 - PONTEIRO PARA O BLOCO: " << current_inode.i_block[block_pointer] << " ";
                     break;
                 }
 
@@ -305,28 +310,20 @@ void filesystem::rmv(FILE* device, uint32_t entry_inode) {
                 for(int index_entry = 64; index_entry < this->sb->s_block_size; index_entry+=32) {
                     dentry entry;
                     fread(&entry, sizeof(dentry), 1, device);
-                    std::cout << "PONTEIRO PARA O BLOCO: " << current_inode.i_block[block_pointer] << std::endl;
-                    std::cout << "ENTRY_INODE: " << entry.inode << std::endl;
+
                     //Se inode = 0 é porque não possui entrada
                     if(entry.inode == 0x00000000 && entry.file_type == 0x00){
                         break;
                     }else{
-                        std::cout << "TESTE 1 - INODES FROM DIRECTORY: " << entry.inode << " ";
                         deep_search_vector.push_back(entry.inode);
                     }
                 }
-                std::cout << std::endl;
-            }
-
-            std::cout<<std::endl;
-            
+            }  
         }else{
-            std::cout << "Inexistente, Corrompido ou Excluido" << std::endl;
+            std::cout << "ERROR MESSAGE (RMV FUNCTION :: LINE 323): CORRUPTED FILE " << std::endl;
+            exit(-1);
         }
     }
-
-    for (auto i = deep_search_vector.begin(); i != deep_search_vector.end(); ++i)
-        std::cout << *i << " ";
 
     // 5 - VECTOR é a lista (deep_search) com todos os inodes que devem ser apagados
     for(int i = deep_search_vector.size(); i != 0; i--){
@@ -340,25 +337,15 @@ void filesystem::rmv(FILE* device, uint32_t entry_inode) {
             break;
         }
 
-        std::cout << "TESTE - deleted inode number: " << deleted_inode_number << std::endl;
-
         fseek(device, (this->bg_d->bgd_inode_table + (deleted_inode_number * 64)), SEEK_SET);
         fread(&deleted_inode, sizeof(inode), 1, device);
 
-        std::cout << "TESTE - deleted inode type: " << (unsigned)deleted_inode.i_type << std::endl;
 
         // Se for arquivo, apenas apagar os inodes e liberar os Blocos, não precisa Escrever 0xE5
         // Se for diretorio, é preciso escrever 0xE5 nas entradas antes de apagar
         if(deleted_inode.i_type == 0x01){       //ARQUIVO
-            /*for(int current_pointer = 0; current_pointer < 12; current_pointer++){
-                if(deleted_inode.i_block[current_pointer] == 0x00000000){
-                    break;
-                }else{
-                    // ADICIONA NOVO BLOCO LIVRE A LISTA DE LIVRES
-                    free_blocks_list.push_back(deleted_inode.i_block[current_pointer]);
-                }
-            }*/
             
+            writeFreeInodeBitmap(device, deep_search_vector.at(deep_search_vector.size() - 1));
             deep_search_vector.pop_back();
 
         }else if(deleted_inode.i_type == 0x02){ //DIRETORIO
@@ -370,22 +357,22 @@ void filesystem::rmv(FILE* device, uint32_t entry_inode) {
 
                 for(int index_entry = 0; index_entry < this->sb->s_block_size; index_entry+=32) {
                     dentry entry;
+                    
                     fseek(device, deleted_inode.i_block[current_pointer] + index_entry, SEEK_SET);
                     fread(&entry, sizeof(dentry), 1, device);
-                    std::cout << "entry inode : " << (unsigned)entry.inode << std::endl;
+
                     if(entry.inode == 0x00000000 && entry.file_type == 0x00){
                         break;
                     }else{
                         fseek(device, deleted_inode.i_block[current_pointer] + (index_entry + 7), SEEK_SET);
                         fwrite(&filetype_mask, sizeof(uint8_t), 1, device);
-                        std::cout << "ENTROU " << index_entry;
                     }
                 }
 
                 // ADICIONA NOVO BLOCO LIVRE A LISTA DE LIVRES
                 free_blocks_list.push_back(deleted_inode.i_block[current_pointer]);
             }
-            //
+            ///////////////////////////////////////////////////////////////////////
             
             // 2 - É preciso apagar as entradas dos diretorios que contem o diretorio apagado
             fseek(device, (deleted_inode.i_block[0] + 32), SEEK_SET);
@@ -393,13 +380,12 @@ void filesystem::rmv(FILE* device, uint32_t entry_inode) {
             fseek(device, (this->bg_d->bgd_inode_table + (inode_parent_number * 64)), SEEK_SET);
             fread(&inode_parent, sizeof(inode), 1, device);
 
-            std::cout << std::endl << "INODE PARENT: " << inode_parent_number << std::endl;
-
             for(int current_pointer = 0; current_pointer < 12; current_pointer++){
+                
                 if(inode_parent.i_block[current_pointer] == 0x00000000){
                     break;
                 }
-                std::cout << std::endl << "INODE PARENT: " << inode_parent.i_block[current_pointer] << std::endl;
+
                 for(int index_entry = 0; index_entry < this->sb->s_block_size; index_entry+=32) {
                     dentry entry;
                     fseek(device, inode_parent.i_block[current_pointer] + index_entry, SEEK_SET);
@@ -407,17 +393,18 @@ void filesystem::rmv(FILE* device, uint32_t entry_inode) {
                     if(entry.inode == 0x00000000 && entry.file_type == 0x00){
                         break;
                     }else if(entry.inode == deleted_inode_number){
-                        std::cout << "DELETED INODE NUMBER: " << deleted_inode_number << std::endl;
                         fseek(device, inode_parent.i_block[current_pointer] + (index_entry + 7), SEEK_SET);
                         fwrite(&filetype_mask, sizeof(uint8_t), 1, device);
-                        std::cout << "ENTROU " << index_entry;
                     }else{
                         continue;
                     }
                 }
             }
-            //   
+            ///////////////////////////////////////////////////////////////////////////////////////
         }
+
+        // Liberar os INODES
+        writeFreeInodeBitmap(device, deep_search_vector.at(deep_search_vector.size() - 1));
         deep_search_vector.pop_back();
     }
 
@@ -426,7 +413,7 @@ void filesystem::rmv(FILE* device, uint32_t entry_inode) {
     updateFreeBlockList(device, x);
 }
 
-uint32_t filesystem::findDentryDir(FILE* device, std::string name, uint32_t inode) {
+uint32_t filesystem::findDentryDir(FILE* device, std::string name, uint32_t inode) {    // Busca por diretórios e Retorna seu INODE
     if(name.size() > 24)
         std::cout << "ERROR: Name greater than " << name.size() + 1 << " characters!" << std::endl;
 
@@ -457,7 +444,7 @@ uint32_t filesystem::findDentryDir(FILE* device, std::string name, uint32_t inod
     return -1;
 }
 
-uint32_t filesystem::findDentryFile(FILE* device, std::string name, uint32_t inode){
+uint32_t filesystem::findDentryFile(FILE* device, std::string name, uint32_t inode){    // Busca por arquivos e Retorna seu INODE
     if(name.size() > 24)
         std::cout << "ERROR: Name greater than " << name.size() + 1 << " characters!" << std::endl;
 
@@ -488,7 +475,7 @@ uint32_t filesystem::findDentryFile(FILE* device, std::string name, uint32_t ino
     return -1;
 }
 
-uint32_t filesystem::seekFreeInode(FILE* device) {
+uint32_t filesystem::seekFreeInode(FILE* device) {  // Busca por INODES LIVRES em INODE BITMAP
     uint8_t mask = 0xFF;
     uint8_t byte = 0x00;
 
@@ -512,14 +499,24 @@ uint32_t filesystem::seekFreeInode(FILE* device) {
     return -1;
 }
 
-void filesystem::writeInodeBitmap(FILE* device, uint32_t index_inode) {
+void filesystem::writeFreeInodeBitmap(FILE* device, uint32_t index_inode) {     // Escreve INODES LIVRES em INODE BITMAP
     uint32_t offset = index_inode / 8;
     uint32_t shift  = index_inode % 8;
     uint8_t  mask   = 0x80;
     uint8_t  entry  = 0x00;
 
-    //std::cout << "offset " << offset << std::endl;
-    //std::cout << "shift  " << shift  << std::endl;
+    fseek(device, bg_d->bgd_inode_bitmap + offset, SEEK_SET);
+    fread(&entry, sizeof(uint8_t), 1, device);
+    entry ^= mask >> shift;
+    fseek(device, bg_d->bgd_inode_bitmap + offset, SEEK_SET);
+    fwrite(&entry, sizeof(uint8_t), 1, device);
+}
+
+void filesystem::writeInodeBitmap(FILE* device, uint32_t index_inode) {         // Escreve INODES OCUPADOS em INODE BITMAP
+    uint32_t offset = index_inode / 8;
+    uint32_t shift  = index_inode % 8;
+    uint8_t  mask   = 0x80;
+    uint8_t  entry  = 0x00;
 
     fseek(device, bg_d->bgd_inode_bitmap + offset, SEEK_SET);
     fread(&entry, sizeof(uint8_t), 1, device);
@@ -528,22 +525,15 @@ void filesystem::writeInodeBitmap(FILE* device, uint32_t index_inode) {
     fwrite(&entry, sizeof(uint8_t), 1, device);
 }
 
-void filesystem::copy_file_HDtoFS(FILE* device, uint32_t dir_inode, std::string name_file, FILE* new_file){
-    dentry dentry;
-    uint32_t inode_position;
-
-    //Posiciona no arquivo o local onde esta as Entradas para diretorio de entrada
-    fseek(device, (this->bg_d->bgd_inode_table + (dir_inode * 64) + 5), SEEK_SET);
-    fread(&inode_position, sizeof(uint32_t), 1, device);
-    fseek(device, inode_position, SEEK_SET);
-
+void filesystem::copy_file_HDtoFS(FILE* device, uint32_t dir_inode, std::string name_file, FILE* new_file){     // Copia do HD para o FS // NaF
+    //FUNÇÀO SEM FUNCIONALIDADE
 }
 
-uint32_t filesystem::getBlockSize(){
+uint32_t filesystem::getBlockSize(){    // Retorna o tamanho do BLOCO == 1024
     return sb->s_block_size;
 }
 
-void filesystem::updateFreeBlockList(FILE* device, uint32_t *x){
+void filesystem::updateFreeBlockList(FILE* device, uint32_t *x){    // Atualiza a Lista de Blocos Livres
      
     uint32_t last_mask = 0xFFFFFFFF;
 
@@ -556,11 +546,9 @@ void filesystem::updateFreeBlockList(FILE* device, uint32_t *x){
         std::fseek(device, free_blocks_list.at(i), SEEK_SET);
         std::fwrite(x+(i+1), sizeof(uint32_t), 1, device);
     }
-    std::cout << "AQUI 3: " << (unsigned)free_blocks_list.at(free_blocks_list.size()-1) << std::endl;
 
-    fseek(device, free_blocks_list.at(free_blocks_list.size() - 1), SEEK_SET);
+    std::fseek(device, free_blocks_list.at(free_blocks_list.size()-1), SEEK_SET);
     std::fwrite(&last_mask, sizeof(uint32_t), 1, device);
-
 }
 
 #endif // FILESYSTEM

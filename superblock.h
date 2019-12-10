@@ -7,7 +7,7 @@
 
 #include <stdint.h>
 
-// Sizeof(superblock) == 32 bytes
+// TAMANHO DO SUPERBLOCK == 32 bytes
 typedef struct superblock {
 
     // Construtor

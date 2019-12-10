@@ -1,11 +1,12 @@
 #ifndef INODE_H
 #define INODE_H
 
-#define OWNFS_ROOT_INODE        2         // Inode do Diretório Raiz
+#define OWNFS_ROOT_INODE        0           // Inode do Diretório Raiz
 #define OWNFS_TYPE_FILE         0x01
 #define OWNFS_TYPE_DIR          0x02
 #define OWNFS_TYPE_UNK          0xE5
 #define OWNFS_I_BLOCK_POINTERS  14
+#define OWNFS_I_UNUSED          3
 
 #include <stdint.h>
 
@@ -30,20 +31,19 @@ typedef struct inode {
     // Variável de 32 bits indicando o tamanho do arquivo em bytes
     uint32_t i_size;
 
-    // Vetor de 15 números de bloco (de 32 bits) apontando para os 
+    // Vetor de 14 Ponteiros para Blocos (de 32 bits) apontando para os 
     // blocos contendo dados.  As primeiras 12 entradas no vetor 
     // contém os números dos blocos de dados(ou seja, são entradas 
     // "diretas"). A 13ª entrada (i_block [12]) contém o número do 
     // bloco do primeiro bloco indireto, que contém ele próprio 
     // (tamanho do bloco / 4) o número de blocos dos blocos de dados.
     // A 14ª entrada (bloco i [13]) contém o número do primeiro bloco 
-    // duplamente indireto. A 15ª entrada (bloco [14]) é o número do 
-    // bloco do primeiro bloco triplamente indireto.
-    // 20 Diretos e 3 Indiretos
+    // duplamente indireto.
+    // 12 Diretos || 1 Indireto || 1 Duplamente Indireto
     uint32_t i_block[OWNFS_I_BLOCK_POINTERS];                   // Vetor de Índices
 
     // Não usado
-    uint8_t i_unused[3];
+    uint8_t i_unused[OWNFS_I_UNUSED];
     
 } __attribute__((__packed__)) inode;
 

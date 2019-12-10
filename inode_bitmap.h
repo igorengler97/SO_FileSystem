@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+// TAMANHO DA INODE BITMAP == 4096 bytes
 typedef struct inode_bitmap {
     
     // Constructor

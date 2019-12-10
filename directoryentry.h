@@ -9,7 +9,7 @@
 // subsequentes.
 
 // Constantes usadas em alguns dos campos de entrada do diretório.
-#define NAME_LEN     24
+#define NAME_LEN     24        //  Tamanho do nome em Bytes
 #define UNKNOWN      0xE5      //  Tipo de Arquivo Desconhecido
 #define FT_REG_FILE  0x01      //  Arquivo
 #define FT_DIR       0x02      //  Diretório
@@ -22,7 +22,7 @@
 // "nome" é na verdade comprimento variável no disco; para os fins desta
 // estrutura, assumiremos o pior caso de NAME_LEN bytes.
 
-// sizeof(dentry) == 32 bytes
+// TAMANHO DE CADA DENTRY/DIRECTORY ENTRY == 32 bytes
 typedef struct dentry {
     
     dentry();
@@ -30,20 +30,14 @@ typedef struct dentry {
     void setName(std::string file_name);
     
     // O número de inode de 32 bits do arquivo referido por esta entrada 
-    // de diretório. Se o número do inode for zero, significa esta entrada de
-    // diretório é inválida, e deve ser "ignorada". EXT2 usa uma entrada de 
-    // diretório com um número de inode zero como terminador da lista ligada
-    // de entradas de diretório em um arquivo de diretório.
+    // de diretório. Se o número do inode for zero, é o inode reservado para o root
     uint32_t inode;
 
-    // O deslocamento não sinalizado de 16 bits da próxima entrada de diretório
-    // no arquivo de diretório, relativo ao início desta entrada do diretório. 
-    // Este campo terá um valor pelo menos igual ao tamanho do registro atual, 
-    // mas talvez mais, se algum espaço no arquivo de diretório não for utilizado.
+    //Tamanho da dentry == 0x20 == 32, ocupa até 2 bytes
     uint16_t entry_len;
 
     // Variável não sinalizada de 8 bits, indicando quantos bytes de dados de 
-    // caracteres estão no nome. Esse valor nunca deve ser maior que rec_len - 8.
+    // caracteres estão no nome.
     uint8_t name_len;
 
     // Variável não sinalizada de 8 bits, indicando o tipo do arquivo. Pode ser

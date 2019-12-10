@@ -3,11 +3,7 @@
 
 #include <stdint.h>
 
-// Uma block group descriptor table é um vetor de block group
-// descriptors.
-//
-// Note que sizeof(blockgroup_descriptor) == 16 bytes
-
+//TAMANHO DO BLOCKGROUP_DESCRIPTOR == 16 bytes
 typedef struct blockgroup_descriptor {
     
     // Constructor
